@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A4 Table</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;  /* 螢幕檢視不被頂端裁切 */
+      justify-content: center;
+      background: #eee; /* 其餘部分淺灰色（僅螢幕用） */
+    }
+    .page {
+      width: 21cm;
+      height: 29.7cm;           /* 直式 A4 尺寸（螢幕用） */
+      background: #fff;
+      box-sizing: border-box;
+      /* 留白：上 0.35cm 右 0.5cm 下 0.75cm 左 0.5cm */
+      padding: 0.35cm 0.5cm 0.75cm 0.5cm;
+    }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    td {
+      padding: 0;
+      border: 1px solid #000;   /* 外框維持 1px */
+      text-align: center;
+      vertical-align: middle;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    /* 子表格（只在各列內部切欄，不影響外側長框） */
+    .subtable { width:100%; height:100%; border-collapse: collapse; table-layout:fixed; border:0; }
+	.subtable td { padding:0; border:0; text-align:center; vertical-align:middle; }
+	/* 只畫分隔線：從第2欄開始的左邊線 */
+	.subtable td + td { border-left:1px solid #000; }
+
+	/* 將 F02a/F02b 與 F01d/F01e 的分界線對齊到同一條 16cm 的直線 */
+	#F01, #F02 { position: relative; }
+
+	/* 共享一條分界線，位置固定在 16cm */
+	#F01::before,
+	#F02::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 16cm;            /* 分界線位置（由左至右 16cm） */
+	border-left: 1px solid #000;
+	pointer-events: none;
+	}
+
+	/* 移除原本內欄的左邊線，避免重疊造成看起來不齊 */
+	#F01e, #F02b { border-left: 0 !important; }
+	
+	/* 讓對齊用的直線蓋在最上層，避免被遮罩覆蓋 */
+	#F01::before, #F02::before { z-index: 2; }
+
+	/* 只在 F02 的上邊線「右側 4cm」做遮罩（16cm~20cm），把那段橫線隱藏 */
+	#F02 { position: relative; } /* 若已經有就不用重複 */
+	#F02::after {
+	content: "";
+	position: absolute;
+	left: 16cm;     /* 從 16cm 開始（F02a/F02b 的分界） */
+	width: 4cm;     /* 到 20cm 結束（F02b 寬 4cm） */
+	top: -1px;      /* 覆蓋邊框 */
+	height: 2px;    /* 比 1px 略厚，確保完全遮住 */
+	background: #fff;
+	z-index: 1;
+	pointer-events: none;
+	}
+	
+	.splitR { border-left: 1px solid #000; } /* 9cm 的那條共同直線 */
+	
+	/* —— F01~F05 全部線條改為透明（包含左右外框、上下外框、內部分隔線） —— */
+
+/* 外框（四邊）改透明 */
+#F01, #F02 {
+  border-color: transparent !important;
+}
+
+/* 內部分隔線（子表格的垂直線）改透明 */
+#F01 .subtable td + td,
+#F02 .subtable td + td {
+  border-left-color: transparent !important;
+}
+
+/* 取消原先對 F01e、F02b 的外框保留（若之前有設定，這裡覆寫掉） */
+#F01e, #F02b {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 1) 確保 F03 上邊線能顯示：把 F02 的下邊線設為 none，避免邊框合併時用到它 */
+#F02 { border-bottom: none !important; }
+#F03 { border-top: 1px solid #000 !important; }
+
+/* 2) 讓 F01e / F02b 的右側邊線對齊（兩列的最右欄畫 1px 右框） */
+#F01 .subtable tr > td:last-child,
+#F02 .subtable tr > td:last-child {
+  border-right: 1px solid #000 !important;
+}
+
+/* 讓 F01 / F02 的右側由「該列本身」畫出，確保兩列同一條直線 */
+#F01, #F02 {
+  border-right: 1px solid #000 !important;
+}
+
+/* 關掉內部最後一格的右邊框，避免雙線／加粗 */
+#F01 .subtable tr > td:last-child,
+#F02 .subtable tr > td:last-child {
+  border-right-color: transparent !important;
+}
+#F01e { border-top: 1px solid #000 !important; }
+
+#F01c,
+#F01c * {
+  font-size: 26px !important;  /* 自行改成你要的大小 */
+  line-height: 1 !important;    /* 避免把列高撐開 */
+  white-space: nowrap !important; /* 強制不換行 */
+}
+
+#F14e,
+#F14e * {
+  font-size: 22px !important;  /* 自行改成你要的大小 */
+  line-height: 1 !important;    /* 避免把列高撐開 */
+}
+#F14f,
+#F14f * {
+  font-size: 22px !important;  /* 自行改成你要的大小 */
+  line-height: 1 !important;    /* 避免把列高撐開 */
+}
+#F15e,
+#F15e * {
+  font-size: 22px !important;  /* 自行改成你要的大小 */
+  line-height: 1 !important;    /* 避免把列高撐開 */
+}
+#F15f,
+#F15f * {
+  font-size: 22px !important;  /* 自行改成你要的大小 */
+  line-height: 1 !important;    /* 避免把列高撐開 */
+}
+
+/* 螢幕：同時放大以下格與其內所有內容 */
+#F06a, #F07a, #F08a, #F09a, #F10a, #F11a, #F12a, #F13a, #F14a, #F15a, #F19a, #F20a, #F21a,
+#F22a, #F23a, #F24a, #F25a, #F22c, #F23c, #F24c, #F23e, #F24e,
+#F06b, #F06c, #F06d, #F06e, #F06f, #F08b, #F09b, #F09c, #F09d, #F09e,
+#F10b, #F10c, #F10d, #F10e, #F10f, #F10g, #F10h, #F10i, #F10j,
+#F11c, #F11e, #F11f, #F13c, #F13e, #F13g, #F14c, #F15c, #F13h,
+#F16a, #F16b, #F17b, #F16d, #F17d, #F19c, #F20c, #F26, #F20b, #F21b, #F16e, #F17e, #F14d, #F15d, #F18a,
+#F06a *, #F07a *, #F08a *, #F09a *, #F10a *, #F11a *, #F12a *, #F13a *, #F14a *, #F15a *, #F19a *, #F20a *, #F21a *,
+#F22a *, #F23a *, #F24a *, #F25a *, #F22c *, #F23c *, #F24c *, #F23e *, #F24e *,
+#F06b *, #F06c *, #F06d *, #F06e *, #F06f *, #F08b *, #F09b *, #F09c *, #F09d *, #F09e *,
+#F10b *, #F10c *, #F10d *, #F10e *, #F10f *, #F10g *, #F10h *, #F10i *, #F10j *,
+#F11c *, #F11e *, #F11f *, #F13c *, #F13e *, #F13g *, #F14c *, #F15c *, #F14d *, #F15d *,
+#F16a *, #F16b *, #F17b *, #F16d *, #F17d *, #F19c *, #F20c *, #F26 *, #F20b *, #F21b *, #F16e *, #F17e *, #F18a *{
+  font-size: 16px !important;   /* 想更大就調整這裡 */
+  line-height: 1 !important;    /* 避免把列高撐開 */
+}
+
+#F22b, #F22d, #F24d, #F07b, #F12b, #F03a, #F03c, #F03e, #F05a, #F05c,
+#F22b *, #F22d *, #F24d *, #F07b *, #F12b *, #F13h *, #F03a *, #F03c *, #F03e *, #F05a *, #F05c *{
+  font-size: 14px !important;   /* 想更大就調整這裡 */
+  line-height: 1 !important;    /* 避免把列高撐開 */
+}
+
+	.img-fit {
+  width: 100%;
+  height: 100%;
+  display: flex;              /* 不撐高，置中 */
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;           /* 超出就截掉，避免溢出格線 */
+}
+.img-fit > img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;                /* 等比縮放 */
+  height: auto;
+  display: block;             /* 消除 img baseline 空隙 */
+  object-fit: contain;        /* 完整顯示整張圖，不裁切 */
+}
+
+/* 讓任一個表格儲存格能放滿圖片而不撐高版面 */
+.td-img { position: relative; }              /* 套在目標 <td> 上 */
+.td-img .img-fill {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;                          /* 超出就截掉，不會溢出格線 */
+}
+.td-img .img-fill img {
+  max-width: 100%; max-height: 100%;
+  width: auto; height: auto; display: block;
+  object-fit: contain;                       /* 等比縮放、完整顯示 */
+}
+
+/* F09f / F20d 靠左，並在左側留 0.15cm 空白 */
+#F09f, #F20d {
+  text-align: left !important;
+  padding-left: 0.03cm;  /* 可依喜好改成 0.1~0.2cm */
+}
+
+/* 如果格子裡是輸入元件，也一併靠左 */
+#F09f input, #F09f select, #F09f textarea,
+#F20d input, #F20d select, #F20d textarea {
+  text-align: left;
+}
+
+/* 螢幕：把指定格與其內所有文字設為 CMYK 100/0/0/0 ≈ #00FFFF */
+#F03a, #F03c, #F03e, #F05a, #F05c, #F06a, #F06c, #F06e, #F07a, #F08a, #F09a, #F09c, #F09e,
+#F10a, #F10c, #F10e, #F10g, #F10i, #F11a, #F11c, #F11f, #F12a, #F13a, #F13c, #F13e, #F13g,
+#F14a, #F14c, #F14e, #F15a, #F15c, #F15e, #F16b, #F16d, #F17b, #F17d, #F19a, #F19c, #F20a,
+#F20c, #F21a, #F22a, #F22c, #F23a, #F23c, #F23e, #F24a, #F24c, #F24e, #F25a, #F26a,
+#F03a *, #F03c *, #F03e *, #F05a *, #F05c *, #F06a *, #F06c *, #F06e *, #F07a *, #F08a *, #F09a *, #F09c *, #F09e *,
+#F10a *, #F10c *, #F10e *, #F10g *, #F10i *, #F11a *, #F11c *, #F11f *, #F12a *, #F13a *, #F13c *, #F13e *, #F13g *,
+#F14a *, #F14c *, #F14e *, #F15a *, #F15c *, #F15e *, #F16b *, #F16d *, #F17b *, #F17d *, #F19a *, #F19c *, #F20a *,
+#F20c *, #F21a *, #F22a *, #F22c *, #F23a *, #F23c *, #F23e *, #F24a *, #F24c *, #F24e *, #F25a *, #F26a * {
+  color: #00FFFF !important;
+  -webkit-text-fill-color: #00a3e9 !important; /* 確保 Chrome/Safari 列印也呈色 */
+}
+
+    /* —— 列印設定 —— */
+    @page { size: A4 portrait; margin: 0; }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: 210mm;
+        height: 297mm;
+        padding: 0.45cm 0.5cm 0.65cm 0.5cm; /* 維持你的留白 */
+        box-shadow: none;
+        page-break-inside: avoid;
+        page-break-after: always;
+      }
+      td, .subtable td {
+        font-size: 9pt;  /* 鎖字級避免撐高 */
+        line-height: 1;
+      }
+	  .subtable { border:0; }
+	.subtable td { border:0; }
+	.subtable td + td { border-left:1px solid #000; }
+	#F01, #F02 { position: relative; }
+	#F01::before,
+	#F02::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 16cm;
+    border-left: 1px solid #000;
+	}
+	#F01e, #F02b { border-left: 0 !important; }
+	#F01::before, #F02::before { z-index: 2; }
+	#F02 { position: relative; }
+	#F02::after {
+    content: "";
+    position: absolute;
+    left: 16cm;
+    width: 4cm;
+    top: -1px;
+    height: 2px;
+    background: #fff;
+    z-index: 1;
+	}
+	#F01, #F02 {
+    border-color: transparent !important;
+  }
+  #F01 .subtable td + td,
+  #F02 .subtable td + td {
+    border-left-color: transparent !important;
+  }
+  #F01e, #F02b {
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+  #F02 { border-bottom: none !important; }
+  #F03 { border-top: 1px solid #000 !important; }
+  #F01 .subtable tr > td:last-child,
+  #F02 .subtable tr > td:last-child {
+    border-right: 1px solid #000 !important;
+  }
+  #F01, #F02 { border-right: 1px solid #000 !important; }
+  #F01 .subtable tr > td:last-child,
+  #F02 .subtable tr > td:last-child { border-right-color: transparent !important; }
+  #F01e { border-top: 1px solid #000 !important; }
+  /* 文字型輸入們 + textarea + select */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  textarea,
+  select {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    appearance: none;
+    -webkit-appearance: none;
+    color: #000 !important;              /* 確保字是黑的 */
+    -webkit-text-fill-color: #000 !important; /* Safari/Chrome 列印文字顏色 */
+    }
+	
+	/* 強化：列印時把所有文字型輸入/下拉/多行文字框的外觀清空，只保留文字 */
+@media print {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  textarea,
+  select {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    border: 0 !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0 !important;   /* 避免看起來像有框 */
+    margin: 0 !important;
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important; /* Chrome/Safari */
+  }
+  /* 隱藏舊版 Edge/IE 的 select 下拉箭頭 */
+  select::-ms-expand { display: none !important; }
+}
+
+@media print {
+  /* 文字可輸入的元素：一網打盡（排除 checkbox/radio/button） */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select {
+    /* 把能關的外觀全部關掉 */
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    border-style: none !important;
+    border-width: 0 !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    /* 避免因 padding 看起來像還有框 */
+    padding: 0 !important;
+    margin: 0 !important;
+
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important; /* Chrome/Safari */
+  }
+  
+  /* 列印：覆蓋先前把 input 文字改黑的規則 */
+@media print {
+  #F03a, #F03c, #F03e, #F05a, #F05c, #F06a, #F06c, #F06e, #F07a, #F08a, #F09a, #F09c, #F09e,
+  #F10a, #F10c, #F10e, #F10g, #F10i, #F11a, #F11c, #F11f, #F12a, #F13a, #F13c, #F13e, #F13g,
+  #F14a, #F14c, #F14e, #F15a, #F15c, #F15e, #F16b, #F16d, #F17b, #F17d, #F19a, #F19c, #F20a,
+  #F20c, #F21a, #F22a, #F22c, #F23a, #F23c, #F23e, #F24a, #F24c, #F24e, #F25a, #F26a,
+  #F03a *, #F03c *, #F03e *, #F05a *, #F05c *, #F06a *, #F06c *, #F06e *, #F07a *, #F08a *, #F09a *, #F09c *, #F09e *,
+  #F10a *, #F10c *, #F10e *, #F10g *, #F10i *, #F11a *, #F11c *, #F11f *, #F12a *, #F13a *, #F13c *, #F13e *, #F13g *,
+  #F14a *, #F14c *, #F14e *, #F15a *, #F15c *, #F15e *, #F16b *, #F16d *, #F17b *, #F17d *, #F19a *, #F19c *, #F20a *,
+  #F20c *, #F21a *, #F22a *, #F22c *, #F23a *, #F23c *, #F23e *, #F24a *, #F24c *, #F24e *, #F25a *, #F26a * {
+    color: #00FFFF !important;
+    -webkit-text-fill-color: #00a3e9 !important;
+  }
+}
+  /* 正紅色 */
+.txt-red { color:#FF0000 !important; -webkit-text-fill-color:#FF0000 !important; }
+@media print {
+  .txt-red { color:#FF0000 !important; -webkit-text-fill-color:#FF0000 !important; }
+}
+/* 只針對這三格提高權重，紅色會贏過 #F09a * / #F10e * / #F10i * 的 !important */
+#F09a .txt-red,
+#F10e .txt-red,
+#F10i .txt-red {
+  color: #FF0000 !important;
+  -webkit-text-fill-color: #FF0000 !important;
+}
+
+@media print {
+  #F09a .txt-red,
+  #F10e .txt-red,
+  #F10i .txt-red {
+    color: #FF0000 !important;
+    -webkit-text-fill-color: #FF0000 !important;
+  }
+}
+
+/* 讓工具列固定在螢幕（視窗）中垂直置中，並精準貼在 A4 的右邊 */
+.tools{
+  position: fixed !important;
+  top: 50% !important;
+  /* A4 置中顯示，寬 21cm → 右緣 = 50% + 21cm/2，再往右留 12px 間距 */
+  left: calc(50% + 21cm / 2 + 12px) !important;
+  transform: translateY(-50%) !important;  /* 垂直置中 */
+  z-index: 9999;
+}
+
+/* 內層做縮放，避免影響置中計算；上下排列 */
+.tools-zoom{
+  display: flex;
+  flex-direction: column;  /* 清除在上、列印在下 */
+  gap: 8px;
+  transform: scale(10);
+  transform-origin: left center; /* 往右放大，不會吃到 A4 */
+}
+
+.tools-zoom button{
+  padding: 8px 12px;   /* 縮放前的基準尺寸（實際乘以 10） */
+  font-size: 14px;
+  line-height: 1;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.tools-zoom button:hover{ opacity:.9; }
+
+@media print{
+  .tools{ display: none !important; }  /* 列印時隱藏按鈕 */
+}
+
+/* 工具列：固定定位 + 列印隱藏（用 !important 壓掉舊規則） */
+.tools{
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+.tools-zoom{
+  display: flex !important;
+  flex-direction: column !important; /* 清除在上、列印在下 */
+  gap: 8px !important;
+  transform: scale(10) !important;   /* 放大 10 倍 */
+  transform-origin: left center !important;
+}
+.tools-zoom button{
+  padding: 8px 12px;
+  font-size: 14px;   /* 縮放前的基準，實際=14×10 */
+  line-height: 1;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.tools-zoom button:hover { opacity: .9; }
+@media print{ .tools{ display:none !important; } }
+
+/* 右側工具列：固定定位；列印時隱藏 */
+.tools{
+  position: fixed !important;
+  z-index: 9999 !important;
+  visibility: hidden;             /* 先隱藏，等定位好再顯示，避免閃爍/遮擋 */
+}
+.tools-zoom{
+  display: flex !important;
+  flex-direction: column !important;   /* 清除在上、列印在下 */
+  gap: 8px !important;
+  transform: scale(10) !important;     /* 放大 10 倍 */
+  transform-origin: left center !important;
+}
+.tools-zoom button{
+  padding: 8px 12px;
+  font-size: 14px;  /* 實際=14×10 */
+  line-height: 1;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.tools-zoom button:hover{ opacity:.9; }
+
+/* 預留右側空白：以變數控制（由 JS 設定） */
+body{ padding-right: var(--tools-pad, 0px); }
+@media print{
+  .tools{ display:none !important; }
+  body{ padding-right: 0 !important; }  /* 列印時不需要預留空白 */
+}
+
+/* 右側工具列：固定定位；列印時隱藏 */
+#ptools {
+  position: fixed !important;
+  z-index: 9999 !important;
+  visibility: hidden;            /* 先隱藏，定位好再顯示 */
+}
+#ptools .stack {
+  display: flex !important;
+  flex-direction: column !important;   /* 上下排列：清除在上、列印在下 */
+  gap: 8px !important;                 /* 之後 JS 會把它也放大 */
+}
+@media print {
+  #ptools { display:none !important; }
+}
+
+/* 預留右側空白，避免按鈕遮到 A4（由 JS 設定變數值） */
+body { padding-right: var(--tools-pad, 0px); }
+@media print { body { padding-right: 0 !important; } }
+
+/* 驗證用提示（只在螢幕上標紅，不影響列印與外框） */
+.invalid-td { box-shadow: inset 0 0 0 2px #e00 !important; }
+.invalid-input { outline: 2px solid #e00 !important; outline-offset: 0; }
+
+@media print {
+  .invalid-td, .invalid-input { box-shadow: none !important; outline: 0 !important; }
+}
+
+/* 錯誤彈窗（列印時自動隱藏） */
+#valModal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; 
+  background: rgba(0,0,0,.35); z-index: 99999; }
+#valModal .card { background:#fff; max-width: 600px; width: calc(100% - 40px); 
+  border:1px solid #333; border-radius:10px; padding:16px 20px; box-shadow:0 6px 18px rgba(0,0,0,.2); }
+#valModal h3 { margin: 0 0 8px; font-size: 18px; }
+#valModal ul { margin:8px 0 0 20px; max-height: 55vh; overflow:auto; }
+#valModal .actions { margin-top: 12px; text-align: right; }
+#valModal .actions button { padding:8px 12px; border:1px solid #333; border-radius:8px; background:#fff; cursor:pointer; }
+@media print { #valModal { display: none !important; } }
+
+
+  </style>
+</head>
+<body>
+  <div class="page">
+    <table>
+	<colgroup>
+  <col style="width:8cm;">
+  <col style="width:1.8cm;">
+  <col style="width:2.85cm;">
+  <col style="width:1.75cm;">
+  <col style="width:5.6cm;">
+</colgroup>
+
+
+      <!-- F01：切成 5 欄（3.5 / 0.7 / 9 / 2.8 / 4 cm）-->
+      <tr>
+        <td colspan="5" id="F01" style="height:0.65cm;">
+          <table class="subtable">
+            <tr>
+              <td id="F01a" class="td-img" style="width:3.5cm;">
+  <div class="img-fill">
+    <img src="https://i.meee.com.tw/M5cKMRK.jpg" alt="">
+  </div>
+</td>
+              <td id="F01b" style="width:0.7cm;"></td>
+              <td id="F01c" style="width:9cm;">不動產(成屋)委託物件登錄表 BK表</td>
+              <td id="F01d" style="width:2.8cm;"></td>
+              <td id="F01e" style="width:4cm;"></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <!-- F02：切成 2 欄（16 / 4 cm）-->
+      <tr>
+        <td colspan="5" id="F02" style="height:0.45cm;">
+          <table class="subtable">
+            <tr>
+              <td id="F02a" style="width:16cm;"></td>
+              <td id="F02b" style="width:4cm;"></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <!-- F03：切成 6 欄（2 / 2.3 / 1.5 / 2.7 / 3.2 / 8.3 cm）-->
+      <tr>
+        <td colspan="5" id="F03" style="height:0.5cm;">
+          <table class="subtable">
+            <tr>
+              <td id="F03a" style="width:2cm;">屋主編號：</td>
+              <td id="F03b" class="print-pad-s" style="width:2.3cm;"><input class="ipt tl" style="width:70px;"></td>
+              <td id="F03c" style="width:1.5cm;">承辦人：</td>
+              <td id="F03d" style="width:3.5cm;"><input class="ipt tl" style="width:100px;"></td>
+              <td id="F03e" style="width:2.9cm;">案名(13字以內)：</td>
+              <td id="F03f" style="width:7.8cm;"><input class="ipt tl" style="width:180px;"></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+	  <!-- F05：切成 4 欄（2.5 / 3.5 / 2.5 / 11.5 cm）-->
+		<tr>
+		<td colspan="5" id="F05" style="height:0.5cm;">
+		<table class="subtable">
+		<tr>
+        <td id="F05a" style="width:3cm;">委託書編號：</td>
+        <td id="F05b" style="width:4cm;"><input class="ipt tl" style="width:70px;"></td>
+        <td id="F05c" style="width:2.5cm;">委託期間：</td>
+        <td id="F05d" style="width:10.5cm;">自 
+          <select id="startYear" class="ipt" style="width:50px;"><option value="114">114</option><option value="115">115</option><option value="116">116</option></select> 年
+          <select id="startMonth" class="ipt" style="width:35px;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select> 月
+          <select id="startDay" class="ipt" style="width:35px;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select> 日
+          ~
+          <select id="endYear" class="ipt" style="width:50px;"><option value="114">114</option><option value="115">115</option><option value="116">116</option></select> 年
+          <select id="endMonth" class="ipt" style="width:35px;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select> 月
+          <select id="endDay" class="ipt" style="width:35px;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select> 日
+        </div></td>
+		</tr>
+		</table>
+		</td>
+		</tr>
+      <tr>
+		<td colspan="5" id="F06" style="height:1cm;">
+		<table class="subtable">
+		<tr>
+        <td id="F06a" style="width:2cm;">備註</td>
+        <td id="F06b" style="width:10.4cm;"><input type="checkbox" class="cbx">A1專任<input type="checkbox" class="cbx">A2投資客<input type="checkbox" class="cbx">A3一般<input type="checkbox" class="cbx">P店配</td>
+        <td id="F06c" style="width:1.3cm;">邊間</td>
+        <td id="F06d" style="width:2.1cm;"><input type="checkbox" class="cbx">是<input type="checkbox" class="cbx">否</td>
+		<td id="F06e" style="width:1cm;">採光</td>
+		<td id="F06f" style="width:3.2cm;"><select id="light" class="ipt" style="width:80px;"><option value="0面採光">0面採光</option><option value="1面採光">1面採光</option><option value="2面採光">2面採光</option><option value="3面採光">3面採光</option><option value="4面採光">4面採光</option></select></td>
+		</tr>
+		</table>
+		</td>
+	  </tr>
+      <tr>
+		<td colspan="5" id="F07" style="height:1.1cm;">
+		<table class="subtable">
+		<tr>
+        <td id="F07a" style="width:2cm;">物件地址</td>
+        <td id="F07b" style="width:18cm;"><input class="ipt tl" style="width:40px;"><select id="F07b_citytype" class="ipt tl" style="width:38px;">
+    <option value="縣">縣</option>
+    <option value="市">市</option>
+  </select>
+  <input class="ipt tl" style="width:40px;">
+  <select id="F07b_districttype" class="ipt tl" style="width:38px;">
+    <option value="鄉">鄉</option>
+    <option value="鎮">鎮</option>
+    <option value="市">市</option>
+    <option value="區">區</option>
+  </select><input class="ipt tl" style="width:70px;">路街<input class="ipt tl" style="width:30px;">段<input class="ipt tl" style="width:30px;">巷<input class="ipt tl" style="width:30px;">弄<input class="ipt tl" style="width:40px;">號<input class="ipt tl" style="width:40px;">樓<input class="ipt tl" style="width:40px;">之<input class="ipt tl" style="width:40px;"></td>
+		</tr>
+		</table>
+		</td>		
+	  </tr>
+      <tr>
+		<td colspan="5" id="F08" style="height:1.8cm;">
+		<table class="subtable">
+		<tr>
+        <td id="F08a" style="width:2cm;">物件種類</td>
+        <td id="F08b" style="width:18cm;"><input type="checkbox" class="cbx">大樓<input type="checkbox" class="cbx">歐洲村<input type="checkbox" class="cbx">頭前<input type="checkbox" class="cbx">副都心<input type="checkbox" class="cbx">溫仔圳<input type="checkbox" class="cbx">二重<input type="checkbox" class="cbx">公寓<input type="checkbox" class="cbx">頂加(含電梯)<input type="checkbox" class="cbx">壹樓<br><input type="checkbox" class="cbx">套房(大樓套房)<input type="checkbox" class="cbx">投資套(內格多間)<input type="checkbox" class="cbx">店面(含透天店面)<input type="checkbox" class="cbx">透天厝<br><input type="checkbox" class="cbx">廠房(單一層、透天廠房)<input type="checkbox" class="cbx">廠辦(工業用大樓可設工廠兼辦公)<input type="checkbox" class="cbx">土地<input type="checkbox" class="cbx">其他</td>
+		</tr>
+		</table>
+		</td>		
+	  </tr>
+<!-- F09：左 9cm（a/b/c） + 右 11cm（d/e/f），保持原寬度 2/5.5/1.5/5/2/4 cm -->
+<tr>
+  <td colspan="5" id="F09" style="height:1.4cm;">
+    <table class="subtable">
+      <tr>
+        <!-- 左 9cm：a/b/c -->
+        <td style="width:9cm; padding:0;">
+          <table class="subtable">
+            <tr>
+              <td id="F09a" style="width:2cm;">格局<br>不含增建</td>
+              <td id="F09b" style="width:5.5cm;"><input class="ipt tl" style="width:15px;">+<input class="ipt tl" style="width:15px;">房<input class="ipt tl" style="width:15px;">廳<input class="ipt tl" style="width:15px;">衛<input class="ipt tl" style="width:15px;">陽台</td>
+              <td id="F09c" style="width:1.5cm;">現況</td>
+            </tr>
+          </table>
+        </td>
+        <!-- 右 11cm：d/e/f；由這個分區的 border-left 畫出 9cm 的共同直線 -->
+        <td class="splitR" style="width:11cm; padding:0;">
+          <table class="subtable">
+            <tr>
+              <td id="F09d" style="width:5cm;"><input type="checkbox" class="cbx">自住<input type="checkbox" class="cbx">空屋<input type="checkbox" class="cbx">空地<br><input type="checkbox" class="cbx">租,租金<input class="ipt tl" style="width:56px;">元/月</td>
+              <td id="F09e" style="width:2cm;">帶看方式<br>(選一項)</td>
+              <td id="F09f" style="width:4cm;"><input type="checkbox" class="cbx">KEY<input type="checkbox" class="cbx">專員<input type="checkbox" class="cbx">管理員<br><input type="checkbox" class="cbx"><input class="ipt tl" style="width:115px;"></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- F10：左9cm(含 a/b/c/d) + 右11cm(含 e~j) -->
+<tr>
+  <td colspan="5" id="F10" style="height:1.3cm;">
+    <table class="subtable">
+      <tr>
+        <!-- 左 9cm：a/b/c/d -->
+        <td style="width:9cm; padding:0;">
+          <table class="subtable">
+            <tr>
+              <td id="F10a" style="width:2cm;">主建物</td>
+              <td id="F10b" style="width:2.5cm;"><input class="ipt tl" style="width:56px;">坪</td>
+              <td id="F10c" style="width:2cm;">附屬建物</td>
+              <td id="F10d" style="width:2.5cm;"><input class="ipt tl" style="width:56px;">坪</td>
+            </tr>
+          </table>
+        </td>
+        <!-- 右 11cm：e~j（此分區的左邊線 = 9.0cm 共同直線；e 寬 1.35cm → 10.35cm 對齊 F11d） -->
+        <td class="splitR" style="width:11cm; padding:0;">
+          <table class="subtable">
+            <tr>
+              <td id="F10e" style="width:1.35cm;">公設<br>不含車</td>
+              <td id="F10f" style="width:2cm;"><input class="ipt tl" style="width:45px;">坪</td>
+              <td id="F10g" style="width:1.9cm;">土地持分</td>
+              <td id="F10h" style="width:1.7cm;"><input class="ipt tl" style="width:40px;">坪</td>
+              <td id="F10i" style="width:1.85cm;">總建坪<br>(含車位)</td>
+              <td id="F10j" style="width:2.2cm;"><input class="ipt tl" style="width:45px;">坪</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- F11：左10.35cm（a~d） + 右9.65cm（e~g） -->
+<tr>
+  <td colspan="5" id="F11" style="height:0.9cm;">
+    <table class="subtable">
+      <tr>
+        <!-- 左 10.35cm：a~d -->
+        <td style="width:10.35cm; padding:0;">
+          <table class="subtable">
+            <tr>
+              <td id="F11a" style="width:2cm;">出售樓層</td>
+              <td id="F11b" style="width:1.5cm;"><input class="ipt tl" style="width:45px;"></td>
+              <td id="F11c" style="width:3.5cm;">總樓高(地上/地下)</td>
+              <td id="F11d" style="width:3.35cm;"><input class="ipt tl" style="width:40px;"> / <input class="ipt tl" style="width:40px;"></td>
+            </tr>
+          </table>
+        </td>
+        <!-- 右 9.65cm：e~g（此格的左邊線 = 10.35cm 的共同直線） -->
+        <td style="width:9.65cm; padding:0;">
+          <table class="subtable">
+            <tr>
+              <td id="F11e" style="width:5.9cm;">路寬<input class="ipt tl" style="width:45px;">米；面寬<input class="ipt tl" style="width:45px;">米</td>
+              <td id="F11f" style="width:1.75cm;">公設比</td>
+              <td id="F11g" style="width:2cm;"><input class="ipt tl" style="width:45px;">%</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+
+      <!-- F12：切成 2 欄（2 / 18 cm）-->
+<tr>
+  <td colspan="5" id="F12" style="height:0.7cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F12a" style="width:2cm;">增建部分</td>
+        <td id="F12b" style="width:18cm;">增建樓層<input class="ipt tl" style="width:40px;">樓；增建面積<input class="ipt tl" style="width:40px;">坪；增建格局<input class="ipt tl" style="width:40px;">+<input class="ipt tl" style="width:40px;">房<input class="ipt tl" style="width:40px;">廳<input class="ipt tl" style="width:40px;">衛<input class="ipt tl" style="width:40px;">陽台</td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F13：切成 8 欄（2 / 3.7 / 2.45 / 3 / 1.7 / 1.7 / 1.5 / 3.95 cm）-->
+<tr>
+  <td colspan="5" id="F13" style="height:0.9cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F13a" style="width:2cm;">社區名稱</td>
+        <td id="F13b" style="width:3.7cm;"><input class="ipt tl" style="width:100px;"></td>
+        <td id="F13c" style="width:2.45cm;">建築完成日</td>
+        <td id="F13d" style="width:3cm;"><input class="ipt tl" style="width:30px;">/<input class="ipt tl" style="width:25px;">/<input class="ipt tl" style="width:25px;"></td>
+        <td id="F13e" style="width:1.7cm;">屋齡</td>
+        <td id="F13f" style="width:1.7cm;"><input class="ipt tl" style="width:40px;">年</td>
+        <td id="F13g" style="width:1.5cm;">座向</td>
+        <td id="F13h" style="width:3.95cm;">座<input class="ipt tl" style="width:40px;">朝<input class="ipt tl" style="width:40px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F14：2 / 6 / 1.5 / 4 / 3 / 3.5 cm -->
+<tr>
+  <td colspan="5" id="F14" style="height:1.2cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F14a" style="width:2cm;">車位</td>
+        <td id="F14b" style="width:6cm;"><input type="checkbox" class="cbx">無<input type="checkbox" class="cbx">有 編號：<input class="ipt tl" style="width:70px;"><br>清潔費：<input class="ipt tl" style="width:93px;">元/月</td>
+        <td id="F14c" style="width:1.5cm;">車位<br>坪數</td>
+        <td id="F14d" style="width:4cm;"><input type="checkbox" class="cbx">公設<input type="checkbox" class="cbx">獨立<br><input class="ipt tl" style="width:60px;">坪</td>
+        <td id="F14e" style="width:3cm;">委託總價</td>
+        <td id="F14f" style="width:3.5cm;"><input class="ipt tl" style="width:90px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F15：2 / 6 / 1.5 / 4 / 3 / 3.5 cm -->
+<tr>
+  <td colspan="5" id="F15" style="height:1.1cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F15a" style="width:2cm;">車位類型</td>
+        <td id="F15b" style="width:6cm;"><input type="checkbox" class="cbx">坡平<input type="checkbox" class="cbx">坡機<input type="checkbox" class="cbx">機械升降<br><input type="checkbox" class="cbx">門口方便停車<input type="checkbox" class="cbx">機械平面</td>
+        <td id="F15c" style="width:1.5cm;">車位<br>售價</td>
+        <td id="F15d" style="width:4cm;"><input class="ipt tl" style="width:60px;">萬元</td>
+        <td id="F15e" style="width:3cm;">底價</td>
+        <td id="F15f" style="width:3.5cm;"><input class="ipt tl" style="width:90px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- F16：5 欄；F16a 與 F17a 合併（rowspan=2） -->
+<tr style="height:1.35cm;">
+  <td id="F16a" rowspan="2" style="width:8cm;">總管理費<input class="ipt tl" style="width:60px;">元<br><input type="checkbox" class="cbx">月 <input type="checkbox" class="cbx">坪 <input type="checkbox" class="cbx">季 <input type="checkbox" class="cbx">年</td>
+  <td id="F16b" style="width:1.8cm;">該層<br>用戶數</td>
+  <td id="F16c" style="width:2.85cm;"><input class="ipt tl" style="width:60px;"></td>
+  <td id="F16d" style="width:1.75cm;">網站</td>
+  <td id="F16e" style="width:5.6cm;"><input type="checkbox" class="cbx">不顯示，理由<input class="ipt tl" style="width:60px;"></td>
+</tr>
+
+<!-- F17：a 欄被上列合併；b~e 與 F18b~e 合併（rowspan=2） -->
+<tr style="height:0.45cm;">
+  <!-- (a 欄留給上面那格的 rowspan) -->
+  <td id="F17b" rowspan="2" style="width:1.8cm;">該層<br>電梯數</td>
+  <td id="F17c" rowspan="2" style="width:2.85cm;"><input class="ipt tl" style="width:60px;"></td>
+  <td id="F17d" rowspan="2" style="width:1.75cm;">瓦斯</td>
+  <td id="F17e" rowspan="2" style="width:5.6cm;"><input type="checkbox" class="cbx">天然瓦斯<input type="checkbox" class="cbx">桶裝瓦斯<input type="checkbox" class="cbx">電</td>
+</tr>
+
+<!-- F18：b~e 由上列跨下來；僅有 a 欄 -->
+<tr style="height:0.85cm;">
+  <td id="F18a" style="width:8cm;">管理費 <input type="checkbox" class="cbx">有<input type="checkbox" class="cbx">無  含停車位清節費</td>
+  <!-- b~e 由上列 rowspan 覆蓋 -->
+</tr>
+
+
+      <!-- F19：2 / 6 / 2.8 / 9.2 cm -->
+<tr>
+  <td colspan="5" id="F19" style="height:1.45cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F19a" style="width:2cm;">租約概況</td>
+        <td id="F19b" style="width:6cm;">租約到期日<input class="ipt tl" style="width:60px;"><br>年租金<input class="ipt tl" style="width:30px;">萬。投報率<input class="ipt tl" style="width:30px;">%</td>
+        <td id="F19c" style="width:2.8cm;">帶看注意事項</td>
+        <td id="F19d" style="width:9.2cm;"><input class="ipt tl" style="width:300px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F20：2 / 12 / 1.25 / 4.75 cm -->
+<tr>
+  <td colspan="5" id="F20" style="height:1.45cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F20a" style="width:2cm;">主要建材<br>依謄本</td>
+        <td id="F20b" style="width:12cm;"><input type="checkbox" class="cbx">鋼筋混凝土<input type="checkbox" class="cbx">鋼骨<input type="checkbox" class="cbx">磚牆<input type="checkbox" class="cbx">RC鋼骨<input type="checkbox" class="cbx">進口石材<br><input type="checkbox" class="cbx">加強磚造<input type="checkbox" class="cbx">RC結構<input type="checkbox" class="cbx">磚造<input type="checkbox" class="cbx">鋼骨鋼筋混凝土<input type="checkbox" class="cbx">無</td>
+        <td id="F20c" style="width:1.25cm;">建物<br>內牆</td>
+        <td id="F20d" style="width:4.75cm;"><input type="checkbox" class="cbx">水泥漆<input type="checkbox" class="cbx">壁紙<input type="checkbox" class="cbx">木板隔間<br><input type="checkbox" class="cbx">磚牆隔間<input type="checkbox" class="cbx">拼木<input type="checkbox" class="cbx"><input class="ipt tl" style="width:30px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F21：2 / 18 cm -->
+<tr>
+  <td colspan="5" id="F21" style="height:1.45cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F21a" style="width:2cm;">外牆建材</td>
+        <td id="F21b" style="width:18cm;"><input type="checkbox" class="cbx">二丁掛<input type="checkbox" class="cbx">馬賽克<input type="checkbox" class="cbx">小口磚<input type="checkbox" class="cbx">花崗石<input type="checkbox" class="cbx">玻璃幕<input type="checkbox" class="cbx">進口石材<input type="checkbox" class="cbx">方塊磚<br><input type="checkbox" class="cbx">洗石子<input type="checkbox" class="cbx">高級石材<input type="checkbox" class="cbx">丁掛磚<input type="checkbox" class="cbx">還原磚<input type="checkbox" class="cbx">山形磚<input type="checkbox" class="cbx">無</td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F22：2 / 8 / 1.1 / 8.9 cm -->
+<tr>
+  <td colspan="5" id="F22" style="height:1.05cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F22a" style="width:2cm;">天花板</td>
+        <td id="F22b" style="width:8cm;"><input type="checkbox" class="cbx">水泥漆<input type="checkbox" class="cbx">壁紙<input type="checkbox" class="cbx">木材<input type="checkbox" class="cbx">防火石棉<input type="checkbox" class="cbx">輕鋼架</td>
+        <td id="F22c" style="width:1.1cm;">地板</td>
+        <td id="F22d" style="width:8.9cm;"><input type="checkbox" class="cbx">磨石子<input type="checkbox" class="cbx">塑膠地磚<input type="checkbox" class="cbx">大理石<input type="checkbox" class="cbx">地磚<input type="checkbox" class="cbx">拋光磚</td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F23：2 / 4 / 2 / 5 / 2 / 5 cm -->
+<tr>
+  <td colspan="5" id="F23" style="height:0.75cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F23a" style="width:2cm;">公車站牌</td>
+        <td id="F23b" style="width:4cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F23c" style="width:2cm;">市場</td>
+        <td id="F23d" style="width:5cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F23e" style="width:2cm;">鄰近學校</td>
+        <td id="F23f" style="width:5cm;"><input class="ipt tl" style="width:120px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F24：2 / 4 / 2 / 5 / 2 / 5 cm -->
+<tr>
+  <td colspan="5" id="F24" style="height:0.75cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F24a" style="width:2cm;">公園綠地</td>
+        <td id="F24b" style="width:4cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F24c" style="width:2cm;">鄰近捷運</td>
+        <td id="F24d" style="width:5cm;"><input class="ipt tl" style="width:55px;">線<input class="ipt tl" style="width:55px;">站</td>
+        <td id="F24e" style="width:2cm;">百貨商圈</td>
+        <td id="F24f" style="width:5cm;"><input class="ipt tl" style="width:120px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F25：2 / 18 cm -->
+<tr>
+  <td colspan="5" id="F25" style="height:0.9cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F25a" style="width:2cm;">房屋特色</td>
+        <td id="F25b" style="width:18cm;">限40中文字<input class="ipt tl" style="width:600px;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+      <!-- F26：2 / 18 cm -->
+<tr>
+  <td colspan="5" id="F26" style="height:4cm;">
+    <table class="subtable">
+      <tr>
+        <td id="F26a" style="width:2cm;">格局圖</td>
+        <td id="F26b" style="width:18cm;"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+    </table>
+  </div>
+  
+<script>
+function colorPhraseInCell(cellId, phrase){
+  var root = document.getElementById(cellId);
+  if (!root) return;
+
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  var nodes = [], n;
+  while ((n = walker.nextNode())) nodes.push(n);
+
+  nodes.forEach(function(node){
+    var t = node.nodeValue;
+    if (!t || t.indexOf(phrase) === -1) return;
+
+    var frag = document.createDocumentFragment(), i = 0, idx;
+    while ((idx = t.indexOf(phrase, i)) !== -1) {
+      if (idx > i) frag.appendChild(document.createTextNode(t.slice(i, idx)));
+
+      var span = document.createElement('span');
+      span.className = 'txt-red';
+      // 用行內樣式 + !important，強制覆蓋任何外部規則
+      span.style.setProperty('color', '#FF0000', 'important');
+      span.style.setProperty('-webkit-text-fill-color', '#FF0000', 'important');
+      span.textContent = phrase;
+
+      frag.appendChild(span);
+      i = idx + phrase.length;
+    }
+    if (i < t.length) frag.appendChild(document.createTextNode(t.slice(i)));
+
+    node.parentNode.replaceChild(frag, node);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', function(){
+  // 依你的指定
+  colorPhraseInCell('F09a', '不含增建');
+  colorPhraseInCell('F10e', '不含車');
+  colorPhraseInCell('F20a', '依謄本');
+  colorPhraseInCell('F09e', '(選一項)');
+});
+</script>
+<script>
+function clearAllInputs() {
+  // 文字型輸入（包含沒寫 type 的 input）
+  document.querySelectorAll(
+    'input:not([type]),' +                             // 沒有 type 屬性 → 預設 text
+    'input[type="text"], input[type="password"], ' +
+    'input[type="number"], input[type="email"], '  +
+    'input[type="tel"], input[type="url"], '       +
+    'input[type="search"], input[type="date"], '   +
+    'input[type="time"], input[type="datetime-local"]'
+  ).forEach(el => { el.value = ''; el.defaultValue = ''; });
+
+  // 多行文字
+  document.querySelectorAll('textarea')
+    .forEach(el => { el.value = ''; el.defaultValue = ''; });
+
+  // 下拉選單（全部取消選取）
+  document.querySelectorAll('select')
+    .forEach(el => { el.selectedIndex = -1; });
+
+  // 勾選類
+  document.querySelectorAll('input[type="checkbox"], input[type="radio"]')
+    .forEach(el => { el.checked = false; el.defaultChecked = false; });
+
+  // contenteditable 區塊
+  document.querySelectorAll('[contenteditable], [contenteditable="true"]')
+    .forEach(el => { el.textContent = ''; });
+
+  // 若曾用列印替身文字，順便清掉
+  document.querySelectorAll('.print-as-text').forEach(span => span.remove());
+}
+</script>
+<div id="ptools">
+  <div class="stack">
+    <button type="button" onclick="clearAllInputs()"><b>清除全部</b></button><br>
+    <button type="button" onclick="window.print()"><b>列印</b></button>
+  </div>
+</div>
+
+
+
+<script>
+(function(){
+  const SCALE = 2;       // 放大倍率（要改就改這裡）
+  const GAP_PX = 12;      // A4 右緣與按鈕的水平距離
+
+  function forceScaleButtons(scale){
+    const btns = document.querySelectorAll('#ptools button');
+    const stack = document.querySelector('#ptools .stack');
+    if (!btns.length || !stack) return;
+
+    // 基準（未放大前）
+    const base = {
+      font: 14, padY: 8, padX: 12, border: 1, radius: 6, gap: 8
+    };
+    // 把尺寸用 !important 強制套上，避免任何舊規則蓋掉
+    stack.style.setProperty('gap', (base.gap * scale) + 'px', 'important');
+
+    btns.forEach(b=>{
+      b.style.setProperty('display', 'inline-block', 'important');
+      b.style.setProperty('font-size', (base.font * scale) + 'px', 'important');
+      b.style.setProperty('line-height', '1', 'important');
+      b.style.setProperty('padding', (base.padY * scale) + 'px ' + (base.padX * scale) + 'px', 'important');
+      b.style.setProperty('border-width', Math.max(1, base.border * scale) + 'px', 'important');
+      b.style.setProperty('border-style', 'solid', 'important');
+      b.style.setProperty('border-color', '#333', 'important');
+      b.style.setProperty('border-radius', (base.radius * scale) + 'px', 'important');
+      b.style.setProperty('background', '#fff', 'important');
+      b.style.setProperty('cursor', 'pointer', 'important');
+    });
+  }
+
+  function positionTools(){
+    const page  = document.querySelector('.page');
+    const tools = document.getElementById('ptools');
+    const stack = tools && tools.querySelector('.stack');
+    if (!page || !tools || !stack) return;
+
+    // 先放大，再量尺寸
+    forceScaleButtons(SCALE);
+
+    // 取得 A4 與按鈕區的實際尺寸
+    const pageRect  = page.getBoundingClientRect();
+    const stackRect = stack.getBoundingClientRect();
+
+    // 把工具列貼在 A4 右側，並在視窗垂直置中
+    const left = Math.round(pageRect.right + GAP_PX);
+    const top  = Math.round((window.innerHeight - stackRect.height) / 2);
+
+    tools.style.setProperty('left', left + 'px', 'important');
+    tools.style.setProperty('top',  Math.max(0, top) + 'px', 'important');
+
+    // 預留右側空白，避免蓋到 A4
+    const pad = Math.ceil(stackRect.width + GAP_PX);
+    document.body.style.setProperty('--tools-pad', pad + 'px');
+
+    tools.style.visibility = 'visible';
+  }
+
+  window.addEventListener('load', positionTools);
+  window.addEventListener('resize', positionTools);
+  // 內容載入延遲時保險跑一次
+  setTimeout(positionTools, 0);
+  setTimeout(positionTools, 250);
+})();
+</script>
+
+<div id="valModal">
+  <div class="card">
+    <h3>請先修正以下欄位後再按列印：</h3>
+    <ul id="valErrors"></ul>
+    <div class="actions">
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // === 依你指定的規則 ===
+  const VALIDATION_RULES = [
+    // F03
+    { target: '#F03b input', required: true, pattern: /^\d{7}$/, msg: '屋主編號：請填 7 碼數字' },
+    { target: '#F03d input, #F03d textarea', required: true, msg: '承辦人：請填寫文字' },
+    { target: '#F03f input, #F03f textarea', maxLen: 13, msg: '案名：最多 13 個字' },
+
+    // F05
+    { target: '#F05b input', required: true, pattern: /^\d{7}$/, msg: '委託書編號：請填 7 碼數字' },
+
+    // F06（至少擇一）
+    { target: '#F06b input[type="checkbox"], #F06b input[type="radio"]', groupAny: true, msg: '備註：請擇一勾選' },
+    { target: '#F06d input[type="checkbox"], #F06d input[type="radio"]', groupAny: true, msg: '邊間：請擇一勾選' },
+
+    // F08（至少擇一）
+    { target: '#F08b input[type="checkbox"], #F08b input[type="radio"]', groupAny: true, msg: '物件種類：請擇一勾選' },
+
+    // F09（至少擇一）
+    { target: '#F09d input[type="checkbox"], #F09d input[type="radio"]', groupAny: true, msg: '現況：請擇一勾選' },
+    { target: '#F09f input[type="checkbox"], #F09f input[type="radio"]', groupAny: true, msg: '帶看方式：請擇一勾選' },
+
+    // F10 / F11 必填
+    { target: '#F10b input', required: true, msg: '主建物：請填寫' },
+    { target: '#F10j input', required: true, msg: '總建坪：請填寫' },
+    { target: '#F11b input, #F11b textarea, #F11b select', required: true, msg: '出售樓層(空地請填1)：請填寫' },
+
+    // F14f 必填
+    { target: '#F14f input, #F14f textarea', required: true, msg: '車位：請填寫' },
+
+    // F20 / F21（至少擇一）
+    { target: '#F20b input[type="checkbox"], #F20b input[type="radio"]', groupAny: true, msg: '主要建材(土地勾無)：請擇一勾選' },
+    { target: '#F20d input[type="checkbox"], #F20d input[type="radio"]', groupAny: true, msg: '建物內牆(土地勾其他)：請擇一勾選' },
+    { target: '#F21b input[type="checkbox"], #F21b input[type="radio"]', groupAny: true, msg: '外牆建材(土地勾無)：請擇一勾選' },
+
+    // F25 字數上限
+    { target: '#F25b input, #F25b textarea', maxLen: 40, msg: '房屋特色：最多 40 個字' },
+  ];
+
+  // ---- 工具函式 ----
+  function collectRequiredFromDOM(rules){
+    document.querySelectorAll('input[required], select[required], textarea[required]').forEach(el=>{
+      rules.push({ target: makeSelector(el), required: true });
+    });
+  }
+  function makeSelector(el){
+    if (el.id) return '#'+el.id;
+    const td = el.closest('td[id]');
+    if (td) return '#'+td.id+' '+el.tagName.toLowerCase();
+    return el.tagName.toLowerCase();
+  }
+  function getValue(el){
+    if (!el) return '';
+    if (el.tagName === 'SELECT') return (el.value || '').trim();
+    if (el.type === 'checkbox' || el.type === 'radio') return el.checked ? (el.value || '✓') : '';
+    if ('value' in el) return (el.value || '').trim();
+    return (el.textContent || '').trim();
+  }
+  function clearMarks(){
+    document.querySelectorAll('.invalid-td').forEach(e=>e.classList.remove('invalid-td'));
+    document.querySelectorAll('.invalid-input').forEach(e=>e.classList.remove('invalid-input'));
+  }
+
+  // ---- 主驗證 ----
+  function validate(){
+    const rules = [...VALIDATION_RULES];
+    collectRequiredFromDOM(rules);
+
+    const errors = [];
+    clearMarks();
+
+    rules.forEach(rule=>{
+      const targets = Array.isArray(rule.target) ? rule.target : [rule.target];
+      let ok = true, nodes = [];
+
+      // 收集節點（若 selector 指到 <td>，抓其內 input/select/textarea）
+      targets.forEach(sel=>{
+        const found = document.querySelectorAll(sel);
+        if (found.length) { nodes.push(...found); return; }
+        const cell = document.querySelector(sel);
+        if (cell) nodes.push(...cell.querySelectorAll('input,select,textarea'));
+      });
+
+      // 找不到任何輸入節點時，改檢查 <td> 文字
+      if (nodes.length === 0) {
+        const cellSel = Array.isArray(rule.target)? rule.target[0] : rule.target;
+        const cell = document.querySelector(cellSel);
+        const text = cell ? (cell.textContent || '').trim() : '';
+        if (rule.required && !text) {
+          errors.push(rule.msg || `缺少：${cellSel}`);
+          if (cell) cell.classList.add('invalid-td');
+        }
+        return;
+      }
+
+      // 規則檢查
+      if (rule.groupAny) {
+        ok = nodes.some(n => getValue(n) !== '');
+      } else {
+        ok = nodes.every(n => {
+          const v = getValue(n);
+          if (rule.required && v === '') return false;
+          if (v !== '' && rule.pattern && !(new RegExp(rule.pattern.source, rule.pattern.flags)).test(v)) return false;
+
+          // 數值 min/max
+          if (v !== '' && rule.min != null && !isNaN(+v) && +v < rule.min) return false;
+          if (v !== '' && rule.max != null && !isNaN(+v) && +v > rule.max) return false;
+
+          // 文字長度 minLen/maxLen
+          if (v !== '' && rule.minLen != null && v.length < rule.minLen) return false;
+          if (v !== '' && rule.maxLen != null && v.length > rule.maxLen) return false;
+
+          return true;
+        });
+      }
+
+      if (!ok) {
+        errors.push(rule.msg || `欄位未填或格式錯誤：${Array.isArray(rule.target)? rule.target.join(' / ') : rule.target}`);
+        nodes.forEach(n=>{
+          n.classList.add('invalid-input');
+          const td = n.closest('td'); if (td) td.classList.add('invalid-td');
+        });
+      }
+    });
+
+    // 條件式：F14b =「有」時的連鎖需求
+    errors.push(...validateF14Conditional());
+
+    return errors;
+  }
+
+function validateF14Conditional(){
+  const errs = [];
+
+  // 判斷 F14b 是否勾選「有」
+  const bInputs = document.querySelectorAll('#F14b input[type="checkbox"], #F14b input[type="radio"]');
+  const isYes = Array.from(bInputs).some(inp=>{
+    if (!inp.checked) return false;
+    const val = (inp.value || '').trim();
+    if (val.includes('有')) return true;
+    if (inp.id) {
+      const lab = document.querySelector('label[for="'+inp.id+'"]');
+      if (lab && (lab.textContent || '').includes('有')) return true;
+    }
+    const sibText = (inp.nextSibling && inp.nextSibling.nodeType===3) ? (inp.nextSibling.nodeValue || '') : '';
+    return sibText.includes('有');
+  });
+  if (!isYes) return errs; // 沒選「有」就不檢查以下條件
+
+  // 1) F14b：編號輸入必填（抓含有值的任一文字輸入；含沒 type 的 input）
+  const bTexts = document.querySelectorAll('#F14b input:not([type]), #F14b input[type="text"], #F14b textarea');
+  const bOK = Array.from(bTexts).some(el => (el.value || '').trim() !== '');
+  if (!bOK) {
+    errs.push('車位：已勾選「有」，請填寫編號');
+    markCell('#F14b', bTexts);
+  }
+
+  // 2) F15b：至少勾選一個
+  if (!atLeastOne('#F15b input[type="checkbox"], #F15b input[type="radio"]')) {
+    errs.push('車位類型：請擇一勾選');
+    markCell('#F15b');
+  }
+
+  // 3) F14d：兩個勾選框至少勾一個，且輸入欄位要有值
+  if (!atLeastOne('#F14d input[type="checkbox"], #F14d input[type="radio"]')) {
+    errs.push('車位坪數：請至少勾選一個');
+    markCell('#F14d');
+  }
+  const dTexts = document.querySelectorAll('#F14d input:not([type]), #F14d input[type="text"], #F14d textarea');
+  const dOK = Array.from(dTexts).some(el => (el.value || '').trim() !== '');
+  if (!dOK) {
+    errs.push('車位坪數：請填寫輸入欄位');
+    markCell('#F14d', dTexts);
+  }
+
+  // 4) F15d：必須要有值（同樣支援沒 type 的 input）
+  const f15dTexts = document.querySelectorAll('#F15d input:not([type]), #F15d input[type="text"], #F15d textarea');
+  const f15dOK = Array.from(f15dTexts).some(el => (el.value || '').trim() !== '');
+  if (!f15dOK) {
+    errs.push('車位售價：請填寫');
+    markCell('#F15d', f15dTexts);
+  }
+
+  return errs;
+
+  // 小工具
+  function atLeastOne(sel){
+    const ns = document.querySelectorAll(sel);
+    return Array.from(ns).some(n => n.checked);
+  }
+  function markCell(cellSel, nodes){
+    const cell = document.querySelector(cellSel);
+    if (cell) cell.classList.add('invalid-td');
+    (nodes && nodes.length ? nodes : []).forEach(n=> n.classList.add('invalid-input'));
+  }
+}
+
+  // ---- 錯誤彈窗 & 列印接管 ----
+  function showErrors(list){
+    const modal = document.getElementById('valModal');
+    const ul = document.getElementById('valErrors');
+    if (!modal || !ul) { alert(list.join('\n')); return; } // 萬一沒放 modal，退回 alert
+    ul.innerHTML = '';
+    list.forEach(msg=>{
+      const li = document.createElement('li');
+      li.textContent = msg;
+      ul.appendChild(li);
+    });
+    modal.style.display = 'flex';
+  }
+
+  function handlePrintClick(){
+    const errs = validate();
+    if (errs.length) showErrors(errs);
+    else window.print();
+  }
+
+  // 自動接管「列印」按鈕（不用改你的 HTML）
+  window.addEventListener('load', function(){
+    document.querySelectorAll('#ptools .stack button').forEach(btn=>{
+      if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('print')) {
+        btn.onclick = handlePrintClick;
+      }
+    });
+  });
+})();
+</script>
+
+
+
+</body>
+</html>
