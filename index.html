@@ -1276,7 +1276,7 @@ function validateF14Conditional(){
   const dTexts = document.querySelectorAll('#F14d input:not([type]), #F14d input[type="text"], #F14d textarea');
   const dOK = Array.from(dTexts).some(el => (el.value || '').trim() !== '');
   if (!dOK) {
-    errs.push('車位坪數：請填寫輸入欄位');
+    errs.push('車位坪數：請填寫輸入欄位<br>若是車位坪數含在公設無法分算請填寫「無法分算」');
     markCell('#F14d', dTexts);
   }
 
@@ -1284,7 +1284,7 @@ function validateF14Conditional(){
   const f15dTexts = document.querySelectorAll('#F15d input:not([type]), #F15d input[type="text"], #F15d textarea');
   const f15dOK = Array.from(f15dTexts).some(el => (el.value || '').trim() !== '');
   if (!f15dOK) {
-    errs.push('車位售價：請填寫');
+    errs.push('車位售價：請填寫<br>若是車位坪數含在公設無法分算請填寫「無法分算」');
     markCell('#F15d', f15dTexts);
   }
 
@@ -1337,6 +1337,7 @@ function validateF14Conditional(){
 
 </body>
 </html>
+
 
 
 
