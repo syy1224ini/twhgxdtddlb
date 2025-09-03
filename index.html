@@ -305,6 +305,7 @@
     color: #000 !important;              /* 確保字是黑的 */
     -webkit-text-fill-color: #000 !important; /* Safari/Chrome 列印文字顏色 */
     }
+	}
 	
 	/* 強化：列印時把所有文字型輸入/下拉/多行文字框的外觀清空，只保留文字 */
 @media print {
@@ -354,7 +355,7 @@
 
     color: #000 !important;
     -webkit-text-fill-color: #000 !important; /* Chrome/Safari */
-  }
+  }}
   
   /* 列印：覆蓋先前把 input 文字改黑的規則 */
 @media print {
@@ -519,6 +520,65 @@ body { padding-right: var(--tools-pad, 0px); }
 #valModal .actions button { padding:8px 12px; border:1px solid #333; border-radius:8px; background:#fff; cursor:pointer; }
 @media print { #valModal { display: none !important; } }
 
+/* 手機寬度：允許左右滑動，並讓 A4 從左側開始顯示 */
+@media (max-width: 900px) {
+  html, body {
+    overflow-x: auto !important;       /* 開啟水平捲動 */
+    -webkit-overflow-scrolling: touch; /* iOS 慣性滾動 */
+    touch-action: pan-x pan-y;
+  }
+  body {
+    justify-content: flex-start !important; /* 取消水平置中，讓內容從左邊開始 */
+    padding-right: 0 !important;            /* 移除工具列預留空白，避免把內容擠出左側 */
+  }
+  .page {
+    margin-left: 0 !important;  /* 確保 A4 左緣貼齊可視區域 */
+  }
+}
+
+/* 手機修正：能滑到最左邊且不被工具列擠走 */
+@media (max-width: 900px) {
+  /* 1) 取消為工具列預留的右側空白（這個會把整頁往左推） */
+  :root { --tools-pad: 0px !important; }
+  body  { padding-right: 0 !important; }
+
+  /* 2) 關掉 flex 置中，讓 A4 從畫面最左邊開始 */
+  body {
+    display: block !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+  }
+
+  /* 3) 開啟水平捲動（iOS 加慣性） */
+  html, body {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+
+  /* 4) 保證 A4 寬度固定，不被壓縮；貼齊左邊 */
+  .page {
+    width: 210mm !important;
+    min-width: 210mm !important;
+    margin: 0 !important;
+  }
+}
+
+/* 手機：右下角仍懸浮，但兩顆按鈕改成橫向排列：清除在左、列印在右 */
+@media (max-width: 900px) {
+  #ptools .stack{
+    display: flex !important;
+    flex-direction: row !important;   /* 橫向 */
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+  /* 強制順序，確保清除在左、列印在右（即便有過去的重排腳本也不怕） */
+  #ptools .stack button[onclick*="clearAllInputs"]{ order: 0 !important; }
+  #ptools .stack button[onclick*="print"]{ order: 1 !important; }
+}
+/* F03d / F05b 只框 input，不框整格 */
+#F03d.invalid-td,
+#F05b.invalid-td { box-shadow: none !important; }
 
   </style>
 </head>
@@ -587,7 +647,7 @@ body { padding-right: var(--tools-pad, 0px); }
 		<table class="subtable">
 		<tr>
         <td id="F05a" style="width:3cm;">委託書編號：</td>
-        <td id="F05b" style="width:4cm;"><input class="ipt tl" style="width:70px;"></td>
+        <td id="F05b" style="width:4cm;"><input class="ipt tl" style="width:100px;"></td>
         <td id="F05c" style="width:2.5cm;">委託期間：</td>
         <td id="F05d" style="width:10.5cm;">自 
           <select id="startYear" class="ipt" style="width:50px;"><option value="114">114</option><option value="115">115</option><option value="116">116</option><option value="117">117</option><option value="118">118</option><option value="119">119</option><option value="120">120</option></select> 年
@@ -1060,32 +1120,46 @@ function clearAllInputs() {
     });
   }
 
-  function positionTools(){
-    const page  = document.querySelector('.page');
-    const tools = document.getElementById('ptools');
-    const stack = tools && tools.querySelector('.stack');
-    if (!page || !tools || !stack) return;
+/* 用這段把原本的 positionTools() 取代掉 */
+function positionTools(){
+  const page  = document.querySelector('.page');
+  const tools = document.getElementById('ptools');
+  const stack = tools && tools.querySelector('.stack');
+  if (!page || !tools || !stack) return;
 
-    // 先放大，再量尺寸
-    forceScaleButtons(SCALE);
+  const GAP_PX = 12;
+  const isMobile = window.matchMedia('(max-width: 900px)').matches;
 
-    // 取得 A4 與按鈕區的實際尺寸
+  // 你原本就有的放大函式，沿用即可（桌機 2 倍、手機 1.4 倍）
+  if (typeof forceScaleButtons === 'function') {
+    forceScaleButtons(isMobile ? 1.4 : 2);
+  }
+
+  if (isMobile) {
+    /* 手機：右下角，不預留右側空白 */
+    tools.style.setProperty('left',   'auto',   'important');
+    tools.style.setProperty('top',    'auto',   'important');
+    tools.style.setProperty('right',  '12px',   'important');
+    tools.style.setProperty('bottom', '12px',   'important');
+    document.body.style.setProperty('--tools-pad', '0px');
+  } else {
+    /* 桌機：貼 A4 右側並垂直置中（維持你原本的行為） */
     const pageRect  = page.getBoundingClientRect();
     const stackRect = stack.getBoundingClientRect();
-
-    // 把工具列貼在 A4 右側，並在視窗垂直置中
     const left = Math.round(pageRect.right + GAP_PX);
     const top  = Math.round((window.innerHeight - stackRect.height) / 2);
 
     tools.style.setProperty('left', left + 'px', 'important');
     tools.style.setProperty('top',  Math.max(0, top) + 'px', 'important');
+    tools.style.removeProperty('right');
+    tools.style.removeProperty('bottom');
 
-    // 預留右側空白，避免蓋到 A4
     const pad = Math.ceil(stackRect.width + GAP_PX);
     document.body.style.setProperty('--tools-pad', pad + 'px');
-
-    tools.style.visibility = 'visible';
   }
+
+  tools.style.visibility = 'visible';
+}
 
   window.addEventListener('load', positionTools);
   window.addEventListener('resize', positionTools);
@@ -1100,6 +1174,7 @@ function clearAllInputs() {
     <h3>請先修正以下欄位後再按列印：</h3>
     <ul id="valErrors"></ul>
     <div class="actions">
+	<button type="button" onclick="document.getElementById('valModal').style.display='none'">我立刻就去修正</button>
     </div>
   </div>
 </div>
@@ -1339,12 +1414,4 @@ function validateF14Conditional(){
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
+</html>
