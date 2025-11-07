@@ -5,22 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>A4 Table</title>
   <style>
-    html, body { height: 100%; margin: 0; }
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: flex-start;  /* 螢幕檢視不被頂端裁切 */
-      justify-content: center;
-      background: #eee; /* 其餘部分淺灰色（僅螢幕用） */
-    }
-    .page {
-      width: 21cm;
-      height: 29.7cm;           /* 直式 A4 尺寸（螢幕用） */
-      background: #fff;
-      box-sizing: border-box;
-      /* 留白：上 0.35cm 右 0.5cm 下 0.75cm 左 0.5cm */
-      padding: 0.35cm 0.5cm 0.75cm 0.5cm;
-    }
+html, body { 
+  height: 100%; 
+  margin: 0; 
+  overflow-x: auto !important;          /* ✅ 新增：允許水平滾動 */
+  -webkit-overflow-scrolling: touch;    /* ✅ 新增：手機支援 */
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;  /* 螢幕檢視不被頂端裁切 */
+  justify-content: center;  /* ✅ 保持置中！ */
+  background: #eee;         /* 保留原顏色 */
+}
+
+.page {
+  position: relative; /* 👈 這是關鍵！它成為左右工具列的定位基準 */
+  width: 21cm;
+  height: 29.7cm;           
+  background: #fff;
+  box-sizing: border-box;
+  padding: 0.35cm 0.5cm 0.75cm 0.5cm;  /* 保留原留白 */
+  overflow: visible !important;
+  min-width: calc(21cm + 0px); /* 21cm 頁寬 + 左側容器寬(280px) + 間距(40px) */
+  
+}
+
+
+	
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     td {
       padding: 0;
@@ -484,10 +497,33 @@ body{ padding-right: var(--tools-pad, 0px); }
 
 /* 右側工具列：固定定位；列印時隱藏 */
 #ptools {
-  position: fixed !important;
-  z-index: 9999 !important;
-  visibility: hidden;            /* 先隱藏，定位好再顯示 */
+  position: absolute; /* 👈 必須是 absolute */
+  right: 2cm;         /* 這是距離表格右邊的距離，可微調 */
+  top: 40%;
+  transform: translateY(-50%);
+  z-index: 9999;
+  /* 確保按鈕可見 */
+  visibility: visible; /* 👈 新增/確認此行 */
 }
+
+#ptools button {
+  /* 基礎尺寸設定，讓按鈕看起來像您需要的樣子 */
+  display: block; 
+  padding: 12px 16px; 
+  font-size: 40px;
+  line-height: 1.2;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background-color: #fff;
+  cursor: pointer;
+  margin: 5px 0; /* 讓按鈕之間有點間距 */
+}
+#ptools .stack {
+    /* 讓按鈕垂直排列 */
+    display: flex;
+    flex-direction: column;
+}
+
 #ptools .stack {
   display: flex !important;
   flex-direction: column !important;   /* 上下排列：清除在上、列印在下 */
@@ -580,10 +616,471 @@ body { padding-right: var(--tools-pad, 0px); }
 #F03d.invalid-td,
 #F05b.invalid-td { box-shadow: none !important; }
 
+
+/* === 右側直向跑馬燈（滑過暫停 + 平滑循環） === */
+.marquee-vertical.smooth {
+  position: fixed;          /* 固定定位：不隨頁面捲動，固定在視窗上 */
+  top: 0;                   /* 貼齊視窗上緣 */
+  right: 0;                 /* 貼齊視窗右邊 */
+  width: 40px;              /* 跑馬燈寬度（可依字體大小調） */
+  height: 100vh;            /* 高度佔整個視窗（100% viewport height） */
+  overflow: hidden;         /* 超出範圍的文字隱藏起來，只顯示可見區域 */
+  background: #ff2d2d;      /* 背景顏色（紅色） */
+  color: #fff;              /* 文字顏色（白色） */
+  font-weight: bold;        /* 粗體字讓內容更醒目 */
+  text-align: center;       /* 文字置中（配合 vertical 書寫方向） */
+  writing-mode: vertical-rl;/* 設定直書方向：從上到下、由右往左排列 */
+  z-index: 99999;           /* 疊放層級最高，避免被其他元素蓋住 */
+  font-size: 30px;          /* 文字大小，可自行調整 */
+  letter-spacing: 2px;       /* 可選：調字距讓更美觀 */
+  --scroll-duration: 20s;   /* CSS 變數：控制滾動一輪時間（JS 會覆蓋它） */
+}
+
+/* === 跑馬燈內部的每一段文字區塊 === */
+.marquee-vertical.smooth div {
+  position: absolute;                     /* 絕對定位，方便做動畫移動 */
+  width: 100%;                            /* 填滿整個跑馬燈寬度 */
+  width: auto; 							/* 1. 讓寬度自動配合內容大小（解決顯示不全問題） */
+  white-space: nowrap;					/* 2. 確保文字不會換行，強迫所有內容顯示在同一行 */
+  animation: scroll-vertical var(--scroll-duration) linear infinite;
+  /* 啟用 smooth-scroll 動畫：
+     - 時間由變數 --scroll-duration 控制（單位秒）
+     - linear：等速滾動
+     - infinite：無限循環播放 */
+}
+
+/* 第一個內容塊從畫面頂端開始 */
+.marquee-vertical.smooth div:nth-child(1) { top: 0; }
+
+/* 第二個內容塊緊接在第一個下方（方便接續滾動） */
+.marquee-vertical.smooth div:nth-child(2) { top: 100%; }
+
+/* === 定義動畫：讓文字區塊由上往下（或下往上）平滑移動 === */
+@keyframes scroll-vertical {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-100%); } /* 確保與您當初設定的移動距離一致 */
+}
+
+/* === 滑鼠移上跑馬燈時，暫停動畫 === */
+.marquee-vertical.smooth:hover div {
+  animation-play-state: paused; /* 暫停滾動 */
+  will-change: transform;
+}
+/* 🎯 新增這段：確保跑馬燈在列印時隱藏 */
+@media print {
+  .marquee-vertical.smooth {
+    display: none !important;
+  }
+}
+
+/* ---------- 新增：paper-wrap（確保橫向寬度包含左側容器） ---------- */
+.paper-wrap {
+  /* 讓這個包裹物的寬度包含 A4 + 左側容器 */
+  position: relative;
+  display: inline-block;               /* 重要：用 inline-block 方便水平置中（用 text-align:center） */
+  transform: translateX(100px); /* 向左移動 100px，可自行調整距離 */
+  vertical-align: top;
+  padding-left: 100px;
+  min-width: calc(21cm + 320px);       /* 21cm A4 + 左側寬度(280px) + 間距(40px) */
+  box-sizing: content-box;
+}
+
+/* 2. 新增偽元素，強制擴展左側可捲動空間 */
+.paper-wrap::before {
+  content: "";
+  display: block;  /* 讓它參與文檔流的寬度計算 */
+  height: 0;       /* 不佔垂直空間 */
+  width: 0;        /* 本身寬度為零 */
+
+  /* 關鍵修正：使用負邊距將後續內容（A4 頁面）整體向左推，
+     從而有效地在 A4 頁面左側創造一個 320px 的可捲動空間。
+     320px = 左側容器寬 (280px) + 預期間距 (40px)
+  */
+  margin-left: -320px;
+}
+
+/* 讓 body 以文字置中方式把 .paper-wrap 置中（避免 flex 帶來的 overflow 計算怪異） */
+body {
+  margin: 0;
+  min-height: 100vh;
+  text-align: center;    /* 把 .paper-wrap 置中 */
+  background: #eee;
+  -webkit-overflow-scrolling: touch;
+  /* 保留原本「允許水平滾動」的設定 */
+  overflow-x: auto !important;
+}
+
+/* .page 繼續當 A4（內部結構不變），但改為塊級元素，讓它在 .paper-wrap 中呈現 */
+.paper-wrap .page {
+  display: block;
+  width: 21cm;
+  height: 29.7cm;
+  background: #fff;
+  box-sizing: border-box;
+  padding: 0.35cm 0.5cm 0.75cm 0.5cm;
+  margin: 0;            /* 內部不要額外 margin */
+  overflow: visible;
+}
+
+/* 左側容器：相對於 .paper-wrap 絕對定位（這樣就屬於 wrapper 的寬度範圍） */
+.paper-wrap .left-side-links-6 {
+  position: absolute;                 /* 相對 .paper-wrap 定位 */
+  left: -320px !important; /* 相對於 .paper-wrap 左邊緣，往左 320px 處開始 */
+  top: 40%;
+  transform: translateY(-50%);
+  width: 280px;
+  height: 760px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 若你有原先針對 body 的 padding-right 變數（給右側工具列用），保留它 */
+body { padding-right: var(--tools-pad, 0px); }
+
+/* 列印時隱藏左側工具列、維持列印寬度不變（保留你原本的列印規則） */
+@media print {
+  .paper-wrap {
+    transform: none !important;
+    padding-left: 0 !important;
+    min-width: 21cm !important;
+  }
+  .left-side-links-6 { display: none !important; }
+  /* 以下兩行確保列印時頁面保持 A4 */
+  .page { width: 210mm; height: 297mm; margin-left: 0 !important; }
+  body { text-align: left; padding-right: 0 !important; }
+}
+
+/* 手機小螢幕（保持你原本的手機行為） */
+@media (max-width: 900px) {
+  /* 在小螢幕把 wrapper 與 page 貼齊並允許左右滑動 */
+  body { text-align: left; }
+  .paper-wrap { min-width: 210mm; display: block; }
+  .paper-wrap .page { margin-left: 0 !important; width: 210mm !important; min-width:210mm !important; }
+  .paper-wrap .left-side-links-6 { position: relative; left: 0; transform: none; width: 100%; height: auto; box-shadow:none; border:0; }
+}
+
+/* 上方四個圖示區 */
+.top-icons-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 70px;
+  border-bottom: 1px solid #ccc;
+  background-color: #f8f8f8;
+}
+
+/* 單個圖示格 */
+.icon-square {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-right: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+.icon-square:last-child {
+  border-right: none;
+}
+.icon-square.active {
+  background-color: #e0e0e0;
+}
+.icon-square img {
+  max-width: 60%;
+  max-height: 60%;
+  object-fit: contain;
+}
+
+/* 下方連結區域 */
+.link-display-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px;
+  text-align: center;
+}
+
+/* 多組連結的樣式 */
+.link-list {
+  display: none;
+}
+.link-list.active {
+  display: block;
+}
+.link-group {
+  margin-bottom: 15px;
+}
+.link-group a.text-link {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: bold;
+}
+.link-group a.image-link img {
+  width: 100%;
+  height: auto;
+  border: 1px solid #333;
+}
+
+/* ✅ 列印時隱藏左側容器 */
+@media print {
+  .left-side-links-6 {
+    display: none !important;
+  }
+}
+
+
+/* 2. 頂部四個等寬高的圖示容器 */
+.top-icons-container {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0; /* 不壓縮 */
+  width: 100%;
+  height: 70px; /* 假設容器寬度 280px，四格，則高度設 70px 形成正方形 */
+  border-bottom: 1px solid #ccc;
+  background-color: #f8f8f8;
+}
+
+/* 3. 單個圖示格子 (長寬相等) */
+.icon-square {
+  width: 25%; /* 均分 100% 寬度 */
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-right: 1px solid #eee; /* 圖示間的分隔線 */
+  box-sizing: border-box;
+  transition: background-color 0.2s;
+}
+.icon-square:last-child {
+  border-right: none;
+}
+/* 選中圖示的樣式 */
+.icon-square.active {
+    background-color: #e0e0e0;
+}
+.icon-square img {
+  max-width: 60%; /* 調整圖示大小 */
+  max-height: 60%;
+  object-fit: contain;
+}
+
+/* 4. 底部連結顯示區 */
+.link-display-area {
+  flex-grow: 1; /* 佔據剩餘空間 */
+  overflow-y: auto; /* 連結太多時可滾動 */
+  padding: 10px; /* 加上內邊距 */
+  background: #fff;
+  text-align: center; /* 讓內容置中 (繼承原本的設定) */
+}
+
+/* 5. 連結列表 (預設隱藏，透過 JS 切換) */
+.link-list {
+  display: none; /* 預設隱藏所有連結列表 */
+  padding: 0 5px; /* 讓連結組內邊距適中 */
+}
+.link-list.active {
+  display: block; /* 被選中的列表才顯示 */
+}
+
+
+/* 🎯 單組內容區塊 (文字 + 圖片) 樣式 */
+.link-group {
+    margin-bottom: 15px; /* 每組之間的間隔 */
+}
+
+/* 🎯 連結文字樣式 */
+.link-group a.text-link {
+    display: block; /* 讓文字獨佔一行 */
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* 🎯 連結圖片樣式 */
+.link-group a.image-link img {
+    width: 100%; /* 圖片寬度填滿父容器 */
+    height: auto; /* 保持等比例 */
+    display: block; 
+    border: 1px solid #333;
+}
+
+/* --- 列印時隱藏 --- */
+@media print {
+  /* 關鍵：在列印模式下，將這兩個獨立容器都隱藏 */
+  .left-side-links-6 { 
+    display: none !important; 
+  }
+}
+
+.scroll-wrapper {
+  position: relative;         /* ✅ 建立定位環境，未來可放其他元素 */
+  height: 100%;               /* ✅ 撐滿整個視窗高度 */
+  width: 100%;                /* ✅ 預設寬度佔滿視窗 */
+  overflow-x: auto;           /* ✅ 開啟橫向滾動 */
+  overflow-y: auto;         /* ✅ 避免出現雙滾動條 */
+  
+  /* ✅ 預留空間：左右各延伸 8 公分（可自行調整） */
+  padding-left: 8cm;
+  padding-right: 8cm;
+  
+  box-sizing: content-box;    /* ✅ 確保 padding 不吃掉內部寬度 */
+  background: #f8f8f8;        /* 可選，看起來更清楚整體範圍 */
+}
+
+@media print {
+  .scroll-wrapper {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+}
+
+
+
+
+
+
+
   </style>
 </head>
 <body>
-  <div class="page">
+<div class="scroll-wrapper">
+<div class="paper-wrap">
+<div class="left-side-links-6" id="left-container">
+
+    <div class="top-icons-container">
+        <div class="icon-square active" data-target="fb-links">
+            <img src="https://i.meee.com.tw/orvGaxr.png" alt="FB">
+        </div>
+        <div class="icon-square" data-target="line-links">
+            <img src="https://i.meee.com.tw/SrSlsCd.png" alt="LINE">
+        </div>
+        <div class="icon-square" data-target="map-links">
+            <img src="https://i.meee.com.tw/0Emwf7Q.png" alt="地圖">
+        </div>
+        <div class="icon-square" data-target="YT-links">
+            <img src="https://i.meee.com.tw/XZQAgoO.png" alt="YT">
+        </div>
+    </div>
+
+    <div class="link-display-area">
+        
+        <div class="link-list active" id="fb-links">
+<div class="link-group">
+      <a href="https://www.facebook.com/profile.php?id=100063626421578&locale=zh_TW" target="_blank" class="text-link" style="font-size: 20px;">台灣房屋鑫典團隊<br>新莊副都心加盟店</a>
+      <a href="https://www.facebook.com/profile.php?id=100063626421578&locale=zh_TW" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/JypQn63.jpeg" alt="台灣房屋鑫典團隊新莊副都心加盟店">
+      </a>
+  </div>
+
+  <div class="link-group">
+      <a href="https://www.facebook.com/profile.php?id=100063802268750&locale=zh_TW" target="_blank" class="text-link" style="font-size: 20px;">台灣房屋鑫典團隊<br>新莊頭前旗艦加盟店</a>
+      <a href="https://www.facebook.com/profile.php?id=100063802268750&locale=zh_TW" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/QBTEci5.jpeg" alt="台灣房屋鑫典團隊新莊頭前旗艦加盟店">
+      </a>
+  </div>
+  
+  <div class="link-group">
+      <a href="https://www.facebook.com/profile.php?id=61570648511691&locale=zh_TW" target="_blank" class="text-link" style="font-size: 20px;">台灣房屋鑫典團隊<br>先嗇宮捷運加盟店</a>
+      <a href="https://www.facebook.com/profile.php?id=61570648511691&locale=zh_TW" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/ygDSCW0.jpeg" alt="台灣房屋鑫典團隊先嗇宮捷運加盟店">
+      </a>
+  </div>
+
+  <div class="link-group">
+      <a href="https://www.facebook.com/share/g/1FhsbRDdcN/" target="_blank" class="text-link" style="font-size: 20px;">鑫典團隊生活點滴全紀錄</a>
+      <a href="https://www.facebook.com/share/g/1FhsbRDdcN/" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/EJl7OOL.jpeg" alt="鑫典團隊生活點滴全紀錄">
+      </a>
+  </div>
+
+  <div class="link-group">
+      <a href="https://www.facebook.com/share/g/17h8t4wdwq/" target="_blank" class="text-link" style="font-size: 20px;">二重在地生活全紀錄</a>
+      <a href="https://www.facebook.com/share/g/17h8t4wdwq/" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/RK0f8OI.jpeg" alt="二重在地生活全紀錄">
+      </a>
+  </div>
+  
+  <div class="link-group">
+      <a href="https://www.facebook.com/share/g/17iWXUc6C4/" target="_blank" class="text-link" style="font-size: 20px;">我是新莊人 二重人 三重人</a>
+      <a href="https://www.facebook.com/share/g/17iWXUc6C4/" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/XG0sXgC.jpeg" alt="我是新莊人 二重人 三重人">
+      </a>
+  </div>
+        </div>
+
+        <div class="link-list" id="line-links">
+  <div class="link-group">
+      <a  target="_blank" class="text-link" style="font-size: 20px;">台灣房屋 地產機器人</a>
+      <a  target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/5iS0DpL.jpeg" alt="地產機器人">
+      </a>
+  </div>
+  
+  <div class="link-group">
+      <a target="_blank" class="text-link" style="font-size: 20px;">鑫典斡旋LINE帳號</a>
+      <a target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/Tity4Tc.jpeg" alt="鑫典斡旋群組">
+      </a>
+  </div>
+        </div>
+
+        <div class="link-list" id="map-links">
+  <div class="link-group">
+      <a href="https://maps.app.goo.gl/ue8yijBp4x9sxWHAA" target="_blank" class="text-link" style="font-size: 20px;">副都心GOOGLE MAP</a>
+      <a href="https://maps.app.goo.gl/ue8yijBp4x9sxWHAA" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/2Nk073I.jpeg" alt="副都心地圖">
+      </a>
+  </div>		
+
+  <div class="link-group">
+      <a href="https://maps.app.goo.gl/pfEsjRJkq5jTRJEJ6" target="_blank" class="text-link" style="font-size: 20px;">頭前GOOGLE MAP</a>
+      <a href="https://maps.app.goo.gl/pfEsjRJkq5jTRJEJ6" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/hSlv34C.jpeg" alt="頭前地圖">
+      </a>
+  </div>
+    
+  <div class="link-group">
+      <a href="https://maps.app.goo.gl/k7nNcaiVMTR2ZyjdA" target="_blank" class="text-link" style="font-size: 20px;">先嗇宮捷運<br>GOOGLE MAP</a>
+      <a href="https://maps.app.goo.gl/k7nNcaiVMTR2ZyjdA" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/LNmbhCG.jpeg" alt="先嗇宮地圖">
+      </a>
+  </div>
+        </div>
+
+        <div class="link-list" id="YT-links">
+  <div class="link-group">
+      <a href="https://www.youtube.com/watch?v=sgaV2HpVU-4" target="_blank" class="text-link" style="font-size: 20px;">大雲端教學</a>
+      <a href="https://www.youtube.com/watch?v=sgaV2HpVU-4" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/rCJwDKW.jpeg" alt="大雲端教學">
+      </a>
+  </div>		
+
+  <div class="link-group">
+      <a href="https://www.youtube.com/watch?v=oFbK3JFgmxc" target="_blank" class="text-link" style="font-size: 20px;">登錄表教學</a>
+      <a href="https://www.youtube.com/watch?v=oFbK3JFgmxc" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/zA4kX6A.jpeg" alt="登錄表教學">
+      </a>
+  </div>
+    
+  <div class="link-group">
+      <a href="https://www.youtube.com/watch?v=t21eiDMPMw0" target="_blank" class="text-link" style="font-size: 20px;">特利屋教學</a>
+      <a href="https://www.youtube.com/watch?v=t21eiDMPMw0" target="_blank" class="image-link">
+          <img src="https://i.meee.com.tw/COwB4Q1.jpeg" alt="特利屋教學">
+      </a>
+  </div>
+        </div>
+
+    </div>
+</div>
+
+ <div class="page"> 
     <table>
 	<colgroup>
   <col style="width:8cm;">
@@ -631,11 +1128,11 @@ body { padding-right: var(--tools-pad, 0px); }
           <table class="subtable">
             <tr>
               <td id="F03a" style="width:2cm;">屋主編號：</td>
-              <td id="F03b" class="print-pad-s" style="width:2.3cm;"><input class="ipt tl" style="width:70px;"></td>
+              <td id="F03b" class="print-pad-s" style="width:2.3cm;"><input class="ipt tl" style="width:70px; text-align: center;"></td>
               <td id="F03c" style="width:1.5cm;">承辦人：</td>
-              <td id="F03d" style="width:3.5cm;"><input class="ipt tl" style="width:100px;"></td>
+              <td id="F03d" style="width:3.5cm;"><input class="ipt tl" style="width:100px; text-align: center;"></td>
               <td id="F03e" style="width:2.9cm;">案名(13字以內)：</td>
-              <td id="F03f" style="width:7.8cm;"><input class="ipt tl" style="width:180px;"></td>
+              <td id="F03f" style="width:7.8cm;"><input class="ipt tl" style="width:180px; text-align: center;"></td>
             </tr>
           </table>
         </td>
@@ -647,7 +1144,7 @@ body { padding-right: var(--tools-pad, 0px); }
 		<table class="subtable">
 		<tr>
         <td id="F05a" style="width:3cm;">委託書編號：</td>
-        <td id="F05b" style="width:4cm;"><input class="ipt tl" style="width:100px;"></td>
+        <td id="F05b" style="width:4cm;"><input class="ipt tl" style="width:100px; text-align: center;"></td>
         <td id="F05c" style="width:2.5cm;">委託期間：</td>
         <td id="F05d" style="width:10.5cm;">自 
           <select id="startYear" class="ipt" style="width:50px;"><option value="114">114</option><option value="115">115</option><option value="116">116</option><option value="117">117</option><option value="118">118</option><option value="119">119</option><option value="120">120</option></select> 年
@@ -657,7 +1154,7 @@ body { padding-right: var(--tools-pad, 0px); }
           <select id="endYear" class="ipt" style="width:50px;"><option value="114">114</option><option value="115">115</option><option value="116">116</option><option value="117">117</option><option value="118">118</option><option value="119">119</option><option value="120">120</option></select> 年
           <select id="endMonth" class="ipt" style="width:35px;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select> 月
           <select id="endDay" class="ipt" style="width:35px;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select> 日
-        </div></td>
+        </td>
 		</tr>
 		</table>
 		</td>
@@ -681,21 +1178,21 @@ body { padding-right: var(--tools-pad, 0px); }
 		<table class="subtable">
 		<tr>
         <td id="F07a" style="width:2cm;">物件地址</td>
-        <td id="F07b" style="width:18cm;"><input class="ipt tl" style="width:30px;"><select id="F07b_citytype" class="ipt tl" style="width:38px;">
+        <td id="F07b" style="width:18cm;"><input class="ipt tl" style="width:30px; text-align: center;"><select id="F07b_citytype" class="ipt tl" style="width:38px;">
     <option value="縣">縣</option>
     <option value="市">市</option>
   </select>
-  <input class="ipt tl" style="width:40px;">
+  <input class="ipt tl" style="width:40px; text-align: center;">
   <select id="F07b_districttype" class="ipt tl" style="width:38px;">
     <option value="鄉">鄉</option>
     <option value="鎮">鎮</option>
     <option value="市">市</option>
     <option value="區">區</option>
-  </select><input class="ipt tl" style="width:70px;"><select id="F07b_districttype" class="ipt tl" style="width:38px;">
+  </select><input class="ipt tl" style="width:70px; text-align: center;"><select id="F07b_districttype" class="ipt tl" style="width:38px;">
     <option value="路">路</option>
     <option value="街">街</option>
 	<option value="道">道</option>
-	<input class="ipt tl" style="width:30px;">段<input class="ipt tl" style="width:70px;">巷<input class="ipt tl" style="width:30px;">弄<input class="ipt tl" style="width:30px;">號<input class="ipt tl" style="width:40px;">樓<input class="ipt tl" style="width:20px;">之<input class="ipt tl" style="width:20px;"></td>
+	<input class="ipt tl" style="width:30px; text-align: center;">段<input class="ipt tl" style="width:70px; text-align: center;">巷<input class="ipt tl" style="width:30px; text-align: center;">弄<input class="ipt tl" style="width:30px; text-align: center;">號<input class="ipt tl" style="width:40px; text-align: center;">樓<input class="ipt tl" style="width:20px; text-align: center;">之<input class="ipt tl" style="width:20px; text-align: center;"></td>
 		</tr>
 		</table>
 		</td>		
@@ -720,7 +1217,7 @@ body { padding-right: var(--tools-pad, 0px); }
           <table class="subtable">
             <tr>
               <td id="F09a" style="width:2cm;">格局<br>不含增建</td>
-              <td id="F09b" style="width:5.5cm;"><input class="ipt tl" style="width:15px;">+<input class="ipt tl" style="width:15px;">房<input class="ipt tl" style="width:15px;">廳<input class="ipt tl" style="width:15px;">衛<input class="ipt tl" style="width:15px;">陽台</td>
+              <td id="F09b" style="width:5.5cm;"><input class="ipt tl" style="width:15px; text-align: center;">+<input class="ipt tl" style="width:15px; text-align: center;">房<input class="ipt tl" style="width:15px; text-align: center;">廳<input class="ipt tl" style="width:15px; text-align: center;">衛<input class="ipt tl" style="width:15px; text-align: center;">陽台</td>
               <td id="F09c" style="width:1.5cm;">現況</td>
             </tr>
           </table>
@@ -729,9 +1226,9 @@ body { padding-right: var(--tools-pad, 0px); }
         <td class="splitR" style="width:11cm; padding:0;">
           <table class="subtable">
             <tr>
-              <td id="F09d" style="width:5cm;"><input type="checkbox" class="cbx">自住<input type="checkbox" class="cbx">空屋<input type="checkbox" class="cbx">空地<br><input type="checkbox" class="cbx">租,租金<input class="ipt tl" style="width:56px;">元/月</td>
+              <td id="F09d" style="width:5cm;"><input type="checkbox" class="cbx">自住<input type="checkbox" class="cbx">空屋<input type="checkbox" class="cbx">空地<br><input type="checkbox" class="cbx">租,租金<input class="ipt tl" style="width:56px; text-align: center;">元/月</td>
               <td id="F09e" style="width:2cm;">帶看方式<br>(選一項)</td>
-              <td id="F09f" style="width:4cm;"><input type="checkbox" class="cbx">KEY<input type="checkbox" class="cbx">專員<input type="checkbox" class="cbx">管理員<br><input type="checkbox" class="cbx"><input class="ipt tl" style="width:115px;"></td>
+              <td id="F09f" style="width:4cm;"><input type="checkbox" class="cbx">KEY<input type="checkbox" class="cbx">專員<input type="checkbox" class="cbx">管理員<br><input type="checkbox" class="cbx"><input class="ipt tl" style="width:115px; text-align: center;"></td>
             </tr>
           </table>
         </td>
@@ -750,9 +1247,9 @@ body { padding-right: var(--tools-pad, 0px); }
           <table class="subtable">
             <tr>
               <td id="F10a" style="width:2cm;">主建物</td>
-              <td id="F10b" style="width:2.5cm;"><input class="ipt tl" style="width:56px;">坪</td>
+              <td id="F10b" style="width:2.5cm;"><input class="ipt tl" style="width:56px; text-align: center;">坪</td>
               <td id="F10c" style="width:2cm;">附屬建物</td>
-              <td id="F10d" style="width:2.5cm;"><input class="ipt tl" style="width:56px;">坪</td>
+              <td id="F10d" style="width:2.5cm;"><input class="ipt tl" style="width:56px; text-align: center;">坪</td>
             </tr>
           </table>
         </td>
@@ -761,11 +1258,11 @@ body { padding-right: var(--tools-pad, 0px); }
           <table class="subtable">
             <tr>
               <td id="F10e" style="width:1.35cm;">公設<br>不含車</td>
-              <td id="F10f" style="width:2cm;"><input class="ipt tl" style="width:45px;">坪</td>
+              <td id="F10f" style="width:2cm;"><input class="ipt tl" style="width:45px; text-align: center;">坪</td>
               <td id="F10g" style="width:1.9cm;">土地持分</td>
-              <td id="F10h" style="width:1.7cm;"><input class="ipt tl" style="width:40px;">坪</td>
+              <td id="F10h" style="width:1.7cm;"><input class="ipt tl" style="width:40px; text-align: center;">坪</td>
               <td id="F10i" style="width:1.85cm;">總建坪<br>(含車位)</td>
-              <td id="F10j" style="width:2.2cm;"><input class="ipt tl" style="width:48px;">坪</td>
+              <td id="F10j" style="width:2.2cm;"><input class="ipt tl" style="width:48px; text-align: center;">坪</td>
             </tr>
           </table>
         </td>
@@ -784,9 +1281,9 @@ body { padding-right: var(--tools-pad, 0px); }
           <table class="subtable">
             <tr>
               <td id="F11a" style="width:2cm;">出售樓層</td>
-              <td id="F11b" style="width:1.5cm;"><input class="ipt tl" style="width:45px;"></td>
+              <td id="F11b" style="width:1.5cm;"><input class="ipt tl" style="width:45px; text-align: center;"></td>
               <td id="F11c" style="width:3.5cm;">總樓高(地上/地下)</td>
-              <td id="F11d" style="width:3.35cm;"><input class="ipt tl" style="width:40px;"> / <input class="ipt tl" style="width:40px;"></td>
+              <td id="F11d" style="width:3.35cm;"><input class="ipt tl" style="width:40px; text-align: center;"> / <input class="ipt tl" style="width:40px; text-align: center;"></td>
             </tr>
           </table>
         </td>
@@ -794,9 +1291,9 @@ body { padding-right: var(--tools-pad, 0px); }
         <td style="width:9.65cm; padding:0;">
           <table class="subtable">
             <tr>
-              <td id="F11e" style="width:5.9cm;">路寬<input class="ipt tl" style="width:45px;">米；面寬<input class="ipt tl" style="width:45px;">米</td>
+              <td id="F11e" style="width:5.9cm;">路寬<input class="ipt tl" style="width:45px; text-align: center;">米；面寬<input class="ipt tl" style="width:45px; text-align: center;">米</td>
               <td id="F11f" style="width:1.75cm;">公設比</td>
-              <td id="F11g" style="width:2cm;"><input class="ipt tl" style="width:45px;">%</td>
+              <td id="F11g" style="width:2cm;"><input class="ipt tl" style="width:45px; text-align: center;">%</td>
             </tr>
           </table>
         </td>
@@ -812,7 +1309,7 @@ body { padding-right: var(--tools-pad, 0px); }
     <table class="subtable">
       <tr>
         <td id="F12a" style="width:2cm;">增建部分</td>
-        <td id="F12b" style="width:18cm;">增建樓層<input class="ipt tl" style="width:40px;">樓；增建面積<input class="ipt tl" style="width:40px;">坪；增建格局<input class="ipt tl" style="width:40px;">+<input class="ipt tl" style="width:40px;">房<input class="ipt tl" style="width:40px;">廳<input class="ipt tl" style="width:40px;">衛<input class="ipt tl" style="width:40px;">陽台</td>
+        <td id="F12b" style="width:18cm;">增建樓層<input class="ipt tl" style="width:40px; text-align: center;">樓；增建面積<input class="ipt tl" style="width:40px; text-align: center;">坪；增建格局<input class="ipt tl" style="width:40px; text-align: center;">+<input class="ipt tl" style="width:40px; text-align: center;">房<input class="ipt tl" style="width:40px; text-align: center;">廳<input class="ipt tl" style="width:40px; text-align: center;">衛<input class="ipt tl" style="width:40px; text-align: center;">陽台</td>
       </tr>
     </table>
   </td>
@@ -824,13 +1321,13 @@ body { padding-right: var(--tools-pad, 0px); }
     <table class="subtable">
       <tr>
         <td id="F13a" style="width:2cm;">社區名稱</td>
-        <td id="F13b" style="width:3.7cm;"><input class="ipt tl" style="width:100px;"></td>
+        <td id="F13b" style="width:3.7cm;"><input class="ipt tl" style="width:100px; text-align: center;"></td>
         <td id="F13c" style="width:2.45cm;">建築完成日</td>
-        <td id="F13d" style="width:3cm;"><input class="ipt tl" style="width:30px;">/<input class="ipt tl" style="width:25px;">/<input class="ipt tl" style="width:25px;"></td>
+        <td id="F13d" style="width:3cm;"><input class="ipt tl" style="width:30px; text-align: center;">/<input class="ipt tl" style="width:25px; text-align: center;">/<input class="ipt tl" style="width:25px; text-align: center;"></td>
         <td id="F13e" style="width:1.7cm;">屋齡</td>
-        <td id="F13f" style="width:1.7cm;"><input class="ipt tl" style="width:40px;">年</td>
+        <td id="F13f" style="width:1.7cm;"><input class="ipt tl" style="width:40px; text-align: center;">年</td>
         <td id="F13g" style="width:1.5cm;">座向</td>
-        <td id="F13h" style="width:3.95cm;">座<input class="ipt tl" style="width:40px;">朝<input class="ipt tl" style="width:40px;"></td>
+        <td id="F13h" style="width:3.95cm;">座<input class="ipt tl" style="width:40px; text-align: center;">朝<input class="ipt tl" style="width:40px; text-align: center;"></td>
       </tr>
     </table>
   </td>
@@ -842,11 +1339,11 @@ body { padding-right: var(--tools-pad, 0px); }
     <table class="subtable">
       <tr>
         <td id="F14a" style="width:2cm;">車位</td>
-        <td id="F14b" style="width:6cm;"><input type="checkbox" class="cbx">無<input type="checkbox" class="cbx">有 編號：<input class="ipt tl" style="width:70px;"><br>清潔費：<input class="ipt tl" style="width:93px;">元/月</td>
+        <td id="F14b" style="width:6cm;"><input type="checkbox" class="cbx">無<input type="checkbox" class="cbx">有 編號：<input class="ipt tl" style="width:70px; text-align: center;"><br>清潔費：<input class="ipt tl" style="width:93px; text-align: center;">元/月</td>
         <td id="F14c" style="width:1.5cm;">車位<br>坪數</td>
-        <td id="F14d" style="width:4cm;"><input type="checkbox" class="cbx">公設<input type="checkbox" class="cbx">獨立<br><input class="ipt tl" style="width:70px;">坪</td>
+        <td id="F14d" style="width:4cm;"><input type="checkbox" class="cbx">公設<input type="checkbox" class="cbx">獨立<br><input class="ipt tl" style="width:70px; text-align: center;">坪</td>
         <td id="F14e" style="width:3cm;">委託總價</td>
-        <td id="F14f" style="width:3.5cm;"><input class="ipt tl" style="width:90px;"></td>
+        <td id="F14f" style="width:3.5cm;"><input class="ipt tl" style="width:90px; text-align: center;"></td>
       </tr>
     </table>
   </td>
@@ -860,9 +1357,9 @@ body { padding-right: var(--tools-pad, 0px); }
         <td id="F15a" style="width:2cm;">車位類型</td>
         <td id="F15b" style="width:6cm;"><input type="checkbox" class="cbx">坡平<input type="checkbox" class="cbx">坡機<input type="checkbox" class="cbx">機械升降<br><input type="checkbox" class="cbx">門口方便停車<input type="checkbox" class="cbx">機械平面</td>
         <td id="F15c" style="width:1.5cm;">車位<br>售價</td>
-        <td id="F15d" style="width:4cm;"><input class="ipt tl" style="width:70px;">萬元</td>
+        <td id="F15d" style="width:4cm;"><input class="ipt tl" style="width:70px; text-align: center;">萬元</td>
         <td id="F15e" style="width:3cm;">底價</td>
-        <td id="F15f" style="width:3.5cm;"><input class="ipt tl" style="width:90px;"></td>
+        <td id="F15f" style="width:3.5cm;"><input class="ipt tl" style="width:90px; text-align: center;"></td>
       </tr>
     </table>
   </td>
@@ -870,18 +1367,18 @@ body { padding-right: var(--tools-pad, 0px); }
 
 <!-- F16：5 欄；F16a 與 F17a 合併（rowspan=2） -->
 <tr style="height:1.35cm;">
-  <td id="F16a" rowspan="2" style="width:8cm;">總管理費<input class="ipt tl" style="width:60px;">元<br><input type="checkbox" class="cbx">月 <input type="checkbox" class="cbx">坪 <input type="checkbox" class="cbx">季 <input type="checkbox" class="cbx">年</td>
+  <td id="F16a" rowspan="2" style="width:8cm;">總管理費<input class="ipt tl" style="width:60px; text-align: center;">元<br><input type="checkbox" class="cbx">月 <input type="checkbox" class="cbx">坪 <input type="checkbox" class="cbx">季 <input type="checkbox" class="cbx">年</td>
   <td id="F16b" style="width:1.8cm;">該層<br>用戶數</td>
-  <td id="F16c" style="width:2.85cm;"><input class="ipt tl" style="width:60px;"></td>
+  <td id="F16c" style="width:2.85cm;"><input class="ipt tl" style="width:60px; text-align: center;"></td>
   <td id="F16d" style="width:1.75cm;">網站</td>
-  <td id="F16e" style="width:5.6cm;"><input type="checkbox" class="cbx">不顯示，理由<input class="ipt tl" style="width:60px;"></td>
+  <td id="F16e" style="width:5.6cm;"><input type="checkbox" class="cbx">不顯示，理由<input class="ipt tl" style="width:80px; text-align: center;"></td>
 </tr>
 
 <!-- F17：a 欄被上列合併；b~e 與 F18b~e 合併（rowspan=2） -->
 <tr style="height:0.45cm;">
   <!-- (a 欄留給上面那格的 rowspan) -->
   <td id="F17b" rowspan="2" style="width:1.8cm;">該層<br>電梯數</td>
-  <td id="F17c" rowspan="2" style="width:2.85cm;"><input class="ipt tl" style="width:60px;"></td>
+  <td id="F17c" rowspan="2" style="width:2.85cm;"><input class="ipt tl" style="width:60px; text-align: center;"></td>
   <td id="F17d" rowspan="2" style="width:1.75cm;">瓦斯</td>
   <td id="F17e" rowspan="2" style="width:5.6cm;"><input type="checkbox" class="cbx">天然瓦斯<input type="checkbox" class="cbx">桶裝瓦斯<input type="checkbox" class="cbx">電</td>
 </tr>
@@ -899,9 +1396,9 @@ body { padding-right: var(--tools-pad, 0px); }
     <table class="subtable">
       <tr>
         <td id="F19a" style="width:2cm;">租約概況</td>
-        <td id="F19b" style="width:6cm;">租約到期日<input class="ipt tl" style="width:60px;"><br>年租金<input class="ipt tl" style="width:30px;">萬。投報率<input class="ipt tl" style="width:30px;">%</td>
+        <td id="F19b" style="width:6cm;">租約到期日<input class="ipt tl" style="width:100px; text-align: center;"><br>年租金<input class="ipt tl" style="width:30px; text-align: center;">萬。投報率<input class="ipt tl" style="width:30px; text-align: center;">%</td>
         <td id="F19c" style="width:2.8cm;">帶看注意事項</td>
-        <td id="F19d" style="width:9.2cm;"><input class="ipt tl" style="width:300px;"></td>
+        <td id="F19d" style="width:9.2cm;"><input class="ipt tl" style="width:300px; text-align: center;"></td>
       </tr>
     </table>
   </td>
@@ -953,11 +1450,11 @@ body { padding-right: var(--tools-pad, 0px); }
     <table class="subtable">
       <tr>
         <td id="F23a" style="width:2cm;">公車站牌</td>
-        <td id="F23b" style="width:4cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F23b" style="width:4cm;"><input class="ipt tl" style="width:120px; text-align: center;"></td>
         <td id="F23c" style="width:2cm;">市場</td>
-        <td id="F23d" style="width:5cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F23d" style="width:5cm;"><input class="ipt tl" style="width:120px; text-align: center;"></td>
         <td id="F23e" style="width:2cm;">鄰近學校</td>
-        <td id="F23f" style="width:5cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F23f" style="width:5cm;"><input class="ipt tl" style="width:120px; text-align: center;"></td>
       </tr>
     </table>
   </td>
@@ -969,11 +1466,11 @@ body { padding-right: var(--tools-pad, 0px); }
     <table class="subtable">
       <tr>
         <td id="F24a" style="width:2cm;">公園綠地</td>
-        <td id="F24b" style="width:4cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F24b" style="width:4cm;"><input class="ipt tl" style="width:120px; text-align: center;"></td>
         <td id="F24c" style="width:2cm;">鄰近捷運</td>
-        <td id="F24d" style="width:5cm;"><input class="ipt tl" style="width:55px;">線<input class="ipt tl" style="width:55px;">站</td>
+        <td id="F24d" style="width:5cm;"><input class="ipt tl" style="width:55px; text-align: center;">線<input class="ipt tl" style="width:55px; text-align: center;">站</td>
         <td id="F24e" style="width:2cm;">百貨商圈</td>
-        <td id="F24f" style="width:5cm;"><input class="ipt tl" style="width:120px;"></td>
+        <td id="F24f" style="width:5cm;"><input class="ipt tl" style="width:120px; text-align: center;"></td>
       </tr>
     </table>
   </td>
@@ -1004,7 +1501,22 @@ body { padding-right: var(--tools-pad, 0px); }
 </tr>
 
     </table>
+	
+</div>
+
+<div id="ptools">
+  <div class="stack">
+	<button onclick="window.open('https://syy1224ini.github.io/twhgxdtdzldlb/', '_blank')">租賃點我</button>
+    <button type="button" onclick="clearAllInputs()"><b>清除全部</b></button><br>
+    <button type="button" onclick="window.print()"><b>列印</b></button>
   </div>
+</div>
+
+
+
+
+</div>
+</div>
   
 <script>
 function colorPhraseInCell(cellId, phrase){
@@ -1080,13 +1592,7 @@ function clearAllInputs() {
   document.querySelectorAll('.print-as-text').forEach(span => span.remove());
 }
 </script>
-<div id="ptools">
-  <div class="stack">
-	<button onclick="window.open('https://syy1224ini.github.io/twhgxdtdzldlb/', '_blank')">租賃點我</button>
-    <button type="button" onclick="clearAllInputs()"><b>清除全部</b></button><br>
-    <button type="button" onclick="window.print()"><b>列印</b></button>
-  </div>
-</div>
+
 
 
 
@@ -1121,52 +1627,9 @@ function clearAllInputs() {
     });
   }
 
-/* 用這段把原本的 positionTools() 取代掉 */
-function positionTools(){
-  const page  = document.querySelector('.page');
-  const tools = document.getElementById('ptools');
-  const stack = tools && tools.querySelector('.stack');
-  if (!page || !tools || !stack) return;
 
-  const GAP_PX = 12;
-  const isMobile = window.matchMedia('(max-width: 900px)').matches;
 
-  // 你原本就有的放大函式，沿用即可（桌機 2 倍、手機 1.4 倍）
-  if (typeof forceScaleButtons === 'function') {
-    forceScaleButtons(isMobile ? 1.4 : 2);
-  }
 
-  if (isMobile) {
-    /* 手機：右下角，不預留右側空白 */
-    tools.style.setProperty('left',   'auto',   'important');
-    tools.style.setProperty('top',    'auto',   'important');
-    tools.style.setProperty('right',  '12px',   'important');
-    tools.style.setProperty('bottom', '12px',   'important');
-    document.body.style.setProperty('--tools-pad', '0px');
-  } else {
-    /* 桌機：貼 A4 右側並垂直置中（維持你原本的行為） */
-    const pageRect  = page.getBoundingClientRect();
-    const stackRect = stack.getBoundingClientRect();
-    const left = Math.round(pageRect.right + GAP_PX);
-    const top  = Math.round((window.innerHeight - stackRect.height) / 2);
-
-    tools.style.setProperty('left', left + 'px', 'important');
-    tools.style.setProperty('top',  Math.max(0, top) + 'px', 'important');
-    tools.style.removeProperty('right');
-    tools.style.removeProperty('bottom');
-
-    const pad = Math.ceil(stackRect.width + GAP_PX);
-    document.body.style.setProperty('--tools-pad', pad + 'px');
-  }
-
-  tools.style.visibility = 'visible';
-}
-
-  window.addEventListener('load', positionTools);
-  window.addEventListener('resize', positionTools);
-  // 內容載入延遲時保險跑一次
-  setTimeout(positionTools, 0);
-  setTimeout(positionTools, 250);
 })();
 </script>
 
@@ -1411,11 +1874,94 @@ function validateF14Conditional(){
 })();
 </script>
 
+<div class="marquee-vertical smooth" id="marquee">
+  <div>🔥 熱門委託中！🔥 新接案件請在二十四小時內將資料交給秘書！🔥 每週一至週三記得打掃！</div>
+</div>
 
+<script>
+window.addEventListener('load', () => {
+  const marquee = document.getElementById('marquee');
+  const content = marquee.querySelector('div');
+  
+  // 取得文字內容的實際高度
+  const contentHeight = content.scrollHeight;
+
+  // 設定速度（例如每秒 30 像素）
+  const speed = 150; // px/s
+
+  // 計算需要的時間（秒）
+  const duration = contentHeight / speed;
+
+  // 設定到 CSS 變數中
+  marquee.style.setProperty('--scroll-duration', `${duration}s`);
+});
+
+
+
+</script>
+
+
+
+<script>
+// ... (您原有的所有 JavaScript 程式碼) ...
+
+document.addEventListener('DOMContentLoaded', function() {
+    const iconSquares = document.querySelectorAll('.icon-square');
+    const linkLists = document.querySelectorAll('.link-list');
+
+    /**
+     * 切換顯示的連結內容
+     * @param {string} targetId - 要顯示的連結列表的 ID (例如: 'fb-links')
+     */
+    function switchContent(targetId) {
+        // 隱藏所有連結列表
+        linkLists.forEach(list => {
+            list.classList.remove('active');
+        });
+
+        // 顯示目標連結列表
+        const targetList = document.getElementById(targetId);
+        if (targetList) {
+            targetList.classList.add('active');
+        }
+    }
+
+    /**
+     * 處理圖示的滑鼠或點擊事件
+     * @param {HTMLElement} icon - 當前被操作的圖示元素
+     */
+    function handleIconActivation(icon) {
+        // 1. 更新圖示的 active 狀態 (外觀)
+        iconSquares.forEach(i => i.classList.remove('active'));
+        icon.classList.add('active');
+
+        // 2. 獲取要顯示的內容 ID 並切換內容
+        const targetId = icon.getAttribute('data-target');
+        switchContent(targetId);
+    }
+
+    iconSquares.forEach(icon => {
+        // 監聽滑鼠移入事件 (實現「滑鼠碰到時」的要求)
+        icon.addEventListener('mouseover', function() {
+            handleIconActivation(icon);
+        });
+
+        // 為了確保在觸控螢幕上也能切換，可以再綁定 click 事件
+        icon.addEventListener('click', function(e) {
+            e.preventDefault(); // 防止點擊行為產生其他副作用
+            handleIconActivation(icon);
+        });
+    });
+
+    // 初始化：確保頁面載入時第一個圖示和內容是活動狀態
+    if (iconSquares.length > 0) {
+        // 狀態已經在 HTML 中設定，這裡可以確保 JS 邏輯接管
+        const defaultIcon = iconSquares[0];
+        handleIconActivation(defaultIcon);
+    }
+});
+</script>
 
 </body>
 </html>
 </html>
-
-
-
