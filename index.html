@@ -1688,7 +1688,7 @@ function clearAllInputs() {
   // === 依你指定的規則 ===
   const VALIDATION_RULES = [
     // F03
-    { target: '#F03b input', required: true, pattern: /^\d{7}$/, msg: '屋主編號：請填 7 碼數字' },
+    { target: '#F03b input', required: true, pattern: /^\d{7}$/, msg: '屋主編號：請填 7 碼數字(舊案重接填七個0)' },
     { target: '#F03d input, #F03d textarea', required: true, msg: '承辦人：請填寫文字' },
     { target: '#F03f input, #F03f textarea', maxLen: 13, msg: '案名：最多 13 個字' },
 
@@ -2012,5 +2012,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
+
 
 
