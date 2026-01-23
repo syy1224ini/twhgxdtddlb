@@ -242,7 +242,7 @@ body {
       .page {
         width: 210mm;
         height: 297mm;
-        padding: 0.45cm 0.5cm 0.65cm 0.5cm; /* 維持你的留白 */
+        padding: 0.65cm 0.5cm 0.45cm 0.5cm; /* 維持你的留白 */
         box-shadow: none;
         page-break-inside: avoid;
         page-break-after: always;
@@ -979,6 +979,13 @@ body { padding-right: var(--tools-pad, 0px); }
     }
   }
 
+	@media print {
+  .page::before {
+    content: "";
+    display: block;
+    height: 3mm;   /* 👈 關鍵：把整個內容往下推 */
+  }
+}
 
 
 
@@ -1546,6 +1553,7 @@ body { padding-right: var(--tools-pad, 0px); }
 
 <div id="ptools">
   <div class="stack">
+	<div class="rent-hint">此表格「不支援」<br>蘋果的Safari瀏覽器</div>
 	<button onclick="window.open('https://syy1224ini.github.io/twhgxdtdzldlb/', '_blank')">租賃點我</button>
     <button type="button" onclick="clearAllInputs()"><b>清除全部</b></button><br>
     <button type="button" onclick="window.print()"><b>列印</b></button>
@@ -1688,7 +1696,7 @@ function clearAllInputs() {
   // === 依你指定的規則 ===
   const VALIDATION_RULES = [
     // F03
-    { target: '#F03b input', required: true, pattern: /^\d{7}$/, msg: '屋主編號：請填 7 碼數字(舊案重接填七個0)' },
+    { target: '#F03b input', required: true, pattern: /^\d{7}$/, msg: '屋主編號：請填 7 碼數字' },
     { target: '#F03d input, #F03d textarea', required: true, msg: '承辦人：請填寫文字' },
     { target: '#F03f input, #F03f textarea', maxLen: 13, msg: '案名：最多 13 個字' },
 
@@ -2012,8 +2020,3 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
-
-
-
-
-
