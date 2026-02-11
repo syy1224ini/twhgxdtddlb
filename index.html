@@ -544,6 +544,39 @@ body { padding-right: var(--tools-pad, 0px); }
 @media print {
   .invalid-td, .invalid-input { box-shadow: none !important; outline: 0 !important; }
 }
+/* 讓兩個切換按鈕平行排列 */
+.version-switch {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.version-switch button {
+  flex: 1; /* 均分寬度 */
+  font-size: 20px !important; /* 調小字體，原按鈕為 40px */
+  padding: 8px 5px !important;
+  white-space: nowrap;
+}
+
+/* 修正螢幕顯示與列印的置中 */
+#F07b {
+  text-align: center !important;
+  padding-left: 0 !important;
+  vertical-align: middle;
+}
+
+#F07b .subtable {
+  width: 100% !important;
+  margin: 0 auto !important;
+  border-collapse: collapse;
+}
+
+@media print {
+  #F07b {
+    text-align: center !important;
+    padding-left: 0 !important;
+  }
+}
 
 /* 錯誤彈窗（列印時自動隱藏） */
 #valModal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; 
@@ -987,7 +1020,38 @@ body { padding-right: var(--tools-pad, 0px); }
   }
 }
 
+/* 強制 F07b 內部的所有內容置中，包含列印時 */
+#F07b {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
 
+/* 針對 F07b 內部的 table (如果 JavaScript 插入了 table) */
+#F07b table {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    border-collapse: collapse;
+}
+
+/* 確保列印時，這些輸入框與下拉選單能水平排列並置中 */
+#F07b .ipt, #F07b select {
+    display: inline-block;
+    vertical-align: middle;
+    float: none !important; /* 防止浮動導致跑版 */
+}
+
+/* 針對列印模式的強制設定 */
+@media print {
+    #F07b {
+        text-align: center !important;
+        -webkit-print-color-adjust: exact;
+    }
+    /* 移除可能導致偏移的 margin */
+    #F07b table {
+        margin: 0 auto !important;
+    }
+}
 
 
 
@@ -1554,6 +1618,10 @@ body { padding-right: var(--tools-pad, 0px); }
 <div id="ptools">
   <div class="stack">
 	<div class="rent-hint">此表格「不支援」<br>蘋果的Safari瀏覽器</div>
+	<div class="version-switch">
+      <button type="button" onclick="switchToLand()">土地版</button>
+      <button type="button" onclick="switchToBuilding()">建物版</button>
+    </div>
 	<button onclick="window.open('https://syy1224ini.github.io/twhgxdtdzldlb/', '_blank')">租賃點我</button>
     <button type="button" onclick="clearAllInputs()"><b>清除全部</b></button><br>
     <button type="button" onclick="window.print()"><b>列印</b></button>
@@ -2008,6 +2076,68 @@ document.addEventListener('DOMContentLoaded', function() {
         handleIconActivation(defaultIcon);
     }
 });
+
+	// 土地版 HTML 模板
+const landTemplate = `
+  <table class="subtable" style="width:100%;" align="center">
+    <tr>
+        <td id="F07a" style="width:2cm;">物件地號</td>
+        <td id="F07b" style="width:18cm;"><input class="ipt tl" style="width:30px; text-align: center;"><select id="F07b_citytype" class="ipt tl" style="width:38px;">
+    <option value="縣">縣</option>
+    <option value="市">市</option>
+  </select>
+  <input class="ipt tl" style="width:40px; text-align: center;">
+  <select id="F07b_districttype" class="ipt tl" style="width:38px;">
+    <option value="鄉">鄉</option>
+    <option value="鎮">鎮</option>
+    <option value="市">市</option>
+    <option value="區">區</option>
+  </select>
+	<input class="ipt tl" style="width:100px; text-align: center;">段<input class="ipt tl" style="width:50px; text-align: center;">小段<input class="ipt tl" style="width:250px; text-align: center;">地號</td>
+		</tr>
+		</table>
+		</td>		
+	  </tr>
+  </table>
+`;
+
+// 建物版 HTML 模板 (原始內容)
+const buildingTemplate = `
+  <table class="subtable" style="width:100%;" align="center">
+    <tr>
+        <td id="F07a" style="width:2cm;">物件地址</td>
+        <td id="F07b" style="width:18cm;"><input class="ipt tl" style="width:30px; text-align: center;"><select id="F07b_citytype" class="ipt tl" style="width:38px;">
+    <option value="縣">縣</option>
+    <option value="市">市</option>
+  </select>
+  <input class="ipt tl" style="width:40px; text-align: center;">
+  <select id="F07b_districttype" class="ipt tl" style="width:38px;">
+    <option value="鄉">鄉</option>
+    <option value="鎮">鎮</option>
+    <option value="市">市</option>
+    <option value="區">區</option>
+  </select><input class="ipt tl" style="width:70px; text-align: center;"><select id="F07b_districttype" class="ipt tl" style="width:38px;">
+    <option value="路">路</option>
+    <option value="街">街</option>
+	<option value="道">道</option>
+	<input class="ipt tl" style="width:30px; text-align: center;">段<input class="ipt tl" style="width:50px; text-align: center;">巷<input class="ipt tl" style="width:30px; text-align: center;">弄<input class="ipt tl" style="width:50px; text-align: center;">號<input class="ipt tl" style="width:40px; text-align: center;">樓<input class="ipt tl" style="width:20px; text-align: center;">之<input class="ipt tl" style="width:20px; text-align: center;"></td>
+		</tr>
+  </table>
+`;
+
+function switchToLand() {
+  document.getElementById('F01c').innerHTML = "不動產(土地)委託物件登錄表 BK表";
+  const f07 = document.getElementById('F07');
+  f07.innerHTML = landTemplate;
+  f07.style.textAlign = "center"; // 強制讓外層 td 也置中
+}
+
+function switchToBuilding() {
+  document.getElementById('F01c').innerHTML = "不動產(成屋)委託物件登錄表 BK表";
+  const f07 = document.getElementById('F07');
+  f07.innerHTML = buildingTemplate;
+  f07.style.textAlign = "center"; // 強制讓外層 td 也置中
+}
 </script>
 
 
@@ -2020,4 +2150,3 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
-
