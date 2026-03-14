@@ -1054,7 +1054,9 @@ body { padding-right: var(--tools-pad, 0px); }
 }
 
 
-
+@media print {
+  #F07b input, #F07b select { vertical-align: baseline !important; }
+}
 
 
 
@@ -1299,11 +1301,11 @@ body { padding-right: var(--tools-pad, 0px); }
     <option value="鎮">鎮</option>
     <option value="市">市</option>
     <option value="區">區</option>
-  </select><input class="ipt tl" style="width:70px; text-align: center;"><select id="F07b_districttype" class="ipt tl" style="width:38px;">
+  </select><input class="ipt tl" style="width:70px; text-align: center;"><select id="F07b_roadtype" class="ipt tl" style="width:38px;">
     <option value="路">路</option>
     <option value="街">街</option>
 	<option value="道">道</option>
-	<input class="ipt tl" style="width:30px; text-align: center;">段<input class="ipt tl" style="width:50px; text-align: center;">巷<input class="ipt tl" style="width:30px; text-align: center;">弄<input class="ipt tl" style="width:50px; text-align: center;">號<input class="ipt tl" style="width:40px; text-align: center;">樓<input class="ipt tl" style="width:20px; text-align: center;">之<input class="ipt tl" style="width:20px; text-align: center;"></td>
+	</select><input class="ipt tl" style="width:30px; text-align: center;">段<input class="ipt tl" style="width:50px; text-align: center;">巷<input class="ipt tl" style="width:30px; text-align: center;">弄<input class="ipt tl" style="width:50px; text-align: center;">號<input class="ipt tl" style="width:40px; text-align: center;">樓<input class="ipt tl" style="width:20px; text-align: center;">之<input class="ipt tl" style="width:20px; text-align: center;"></td>
 		</tr>
 		</table>
 		</td>		
@@ -2116,11 +2118,11 @@ const buildingTemplate = `
     <option value="鎮">鎮</option>
     <option value="市">市</option>
     <option value="區">區</option>
-  </select><input class="ipt tl" style="width:70px; text-align: center;"><select id="F07b_districttype" class="ipt tl" style="width:38px;">
+  </select><input class="ipt tl" style="width:70px; text-align: center;"><select id="F07b_roadtype" class="ipt tl" style="width:38px;">
     <option value="路">路</option>
     <option value="街">街</option>
 	<option value="道">道</option>
-	<input class="ipt tl" style="width:30px; text-align: center;">段<input class="ipt tl" style="width:50px; text-align: center;">巷<input class="ipt tl" style="width:30px; text-align: center;">弄<input class="ipt tl" style="width:50px; text-align: center;">號<input class="ipt tl" style="width:40px; text-align: center;">樓<input class="ipt tl" style="width:20px; text-align: center;">之<input class="ipt tl" style="width:20px; text-align: center;"></td>
+	</select><input class="ipt tl" style="width:30px; text-align: center;">段<input class="ipt tl" style="width:50px; text-align: center;">巷<input class="ipt tl" style="width:30px; text-align: center;">弄<input class="ipt tl" style="width:50px; text-align: center;">號<input class="ipt tl" style="width:40px; text-align: center;">樓<input class="ipt tl" style="width:20px; text-align: center;">之<input class="ipt tl" style="width:20px; text-align: center;"></td>
 		</tr>
   </table>
 `;
