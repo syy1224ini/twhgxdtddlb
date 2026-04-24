@@ -1608,7 +1608,7 @@ body { padding-right: var(--tools-pad, 0px); }
       <tr>
         <td id="F26a" style="width:2cm;">格局圖</td>
         <td id="F26b" style="width:18cm; position: relative;">
-		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20260314版本</span>
+		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20260424版本</span>
 		</td>
       </tr>
     </table>
@@ -1892,6 +1892,9 @@ function clearAllInputs() {
     // 條件式：F14b =「有」時的連鎖需求
     errors.push(...validateF14Conditional());
 
+    // 條件式：土地版時檢查地號欄位
+    errors.push(...validateLandParcelNumber());
+
     return errors;
   }
 
@@ -1963,7 +1966,29 @@ function validateF14Conditional(){
   }
 }
 
-  // ---- 錯誤彈窗 & 列印接管 ----
+function validateLandParcelNumber(){
+  const errs = [];
+
+  // 判斷目前是否為土地版：F07b 內有「地號」文字節點
+  const f07b = document.getElementById('F07b');
+  if (!f07b) return errs;
+  const isLand = f07b.textContent.includes('地號');
+  if (!isLand) return errs;
+
+  // 找到 width:250px 那格 input（地號輸入欄）
+  const inputs = Array.from(f07b.querySelectorAll('input.ipt.tl'));
+  const parcelInput = inputs.find(el => el.style.width === '250px');
+  if (!parcelInput) return errs;
+
+  if ((parcelInput.value || '').trim() === '') {
+    errs.push('物件地號：請輸入地號');
+    parcelInput.classList.add('invalid-input');
+    const td = parcelInput.closest('td');
+    if (td) td.classList.add('invalid-td');
+  }
+
+  return errs;
+}
   function showErrors(list){
     const modal = document.getElementById('valModal');
     const ul = document.getElementById('valErrors');
@@ -1995,7 +2020,7 @@ function validateF14Conditional(){
 </script>
 
 <div class="marquee-vertical smooth" id="marquee">
-  <div>🔥 熱門委託中！🔥 新接案件請在二十四小時內將資料交給秘書！🔥 每週一至週三記得打掃！</div>
+  <div>🔥🔥🔥 熱門委託中！🔥 新接案件請在二十四小時內將資料交給秘書！🔥 每週一至週三記得打掃！</div>
 </div>
 
 <script>
