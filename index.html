@@ -1608,7 +1608,7 @@ body { padding-right: var(--tools-pad, 0px); }
       <tr>
         <td id="F26a" style="width:2cm;">格局圖</td>
         <td id="F26b" style="width:18cm; position: relative;">
-		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20260424版本</span>
+		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20260314版本</span>
 		</td>
       </tr>
     </table>
@@ -1975,17 +1975,27 @@ function validateLandParcelNumber(){
   const isLand = f07b.textContent.includes('地號');
   if (!isLand) return errs;
 
-  // 找到 width:250px 那格 input（地號輸入欄）
+  // 依寬度對應各欄位（小段 50px 可空，其餘必填）
   const inputs = Array.from(f07b.querySelectorAll('input.ipt.tl'));
-  const parcelInput = inputs.find(el => el.style.width === '250px');
-  if (!parcelInput) return errs;
+  const fieldMap = [
+    { width: '30px',  label: '物件地號：請輸入縣市名稱' },
+    { width: '40px',  label: '物件地號：請輸入鄉鎮市區名稱' },
+    { width: '100px', label: '物件地號：請輸入段名稱' },
+    { width: '50px',  label: null },
+    { width: '250px', label: '物件地號：請輸入地號' },
+  ];
 
-  if ((parcelInput.value || '').trim() === '') {
-    errs.push('物件地號：請輸入地號');
-    parcelInput.classList.add('invalid-input');
-    const td = parcelInput.closest('td');
-    if (td) td.classList.add('invalid-td');
-  }
+  fieldMap.forEach(function(field) {
+    if (!field.label) return;
+    const el = inputs.find(function(i) { return i.style.width === field.width; });
+    if (!el) return;
+    if ((el.value || '').trim() === '') {
+      errs.push(field.label);
+      el.classList.add('invalid-input');
+      const td = el.closest('td');
+      if (td) td.classList.add('invalid-td');
+    }
+  });
 
   return errs;
 }
