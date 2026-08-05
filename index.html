@@ -2162,6 +2162,12 @@ function switchToLand() {
   const f07 = document.getElementById('F07');
   f07.innerHTML = landTemplate;
   f07.style.textAlign = "center"; // 強制讓外層 td 也置中
+  
+  // ✅ 新增：點擊土地版時，F13h 兩個 input 自動填入「無」
+  const f13hInputs = document.querySelectorAll('#F13h input');
+  f13hInputs.forEach(input => {
+    input.value = "無";
+  });
 }
 
 function switchToBuilding() {
@@ -2169,6 +2175,12 @@ function switchToBuilding() {
   const f07 = document.getElementById('F07');
   f07.innerHTML = buildingTemplate;
   f07.style.textAlign = "center"; // 強制讓外層 td 也置中
+  
+  // ✅ 新增：切回建物版時，清空 F13h 的輸入框
+  const f13hInputs = document.querySelectorAll('#F13h input');
+  f13hInputs.forEach(input => {
+    input.value = "";
+  });
 }
 </script>
 
