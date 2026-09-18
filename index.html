@@ -1059,6 +1059,14 @@ body { padding-right: var(--tools-pad, 0px); }
 }
 
 
+  /* 預設防護：未經授權的列印（如瀏覽器選單列印）會呈現空白頁面 */
+  @media print {
+    body.prevent-print {
+      display: none !important;
+    }
+  }
+
+
 
   </style>
 </head>
@@ -1608,7 +1616,7 @@ body { padding-right: var(--tools-pad, 0px); }
       <tr>
         <td id="F26a" style="width:2cm;">格局圖</td>
         <td id="F26b" style="width:18cm; position: relative;">
-		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20260815版本</span>
+		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20260918版本</span>
 		</td>
       </tr>
     </table>
@@ -2190,6 +2198,61 @@ function switchToBuilding() {
   <p>📢 請使用電腦開啟此網頁</p>
   <p style="font-size:16px; opacity:0.8;">（目前不支援小螢幕瀏覽）<br>（若有必要請將瀏覽器切換至電腦版網站）</p>
 </div>
+
+<script>
+  const alertMessage = "請填寫完整並使用按鈕列印";
+
+  // 1. 禁止非輸入框區域點擊右鍵
+  document.addEventListener('contextmenu', function (e) {
+    const tagName = e.target.tagName.toLowerCase();
+    const isInput = (
+      tagName === 'input' || 
+      tagName === 'textarea' || 
+      tagName === 'select' || 
+      e.target.isContentEditable
+    );
+
+    if (!isInput) {
+      e.preventDefault();
+      alert(alertMessage);
+    }
+  });
+
+  // 2. 禁止 Ctrl+P / Cmd+P 快捷鍵
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+      e.preventDefault();
+      alert(alertMessage);
+    }
+  });
+
+  // 3. 防範瀏覽器選單列印（預設情況下全部印出空白）
+  window.addEventListener('beforeprint', function () {
+    // 只要不是透過下面按鈕事件解鎖的，一律加上鎖定
+    if (!window._allowPrintOnce) {
+      document.body.classList.add('prevent-print');
+    }
+  });
+
+  // 4. 精確攔截按鈕點擊：在執行原生的 window.print() 前後做出同步控制
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('button');
+    // 檢查點擊的是否為帶有 window.print() 的按鈕
+    if (btn && btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('window.print')) {
+      
+      // 【核心防護 logic】
+      // 1. 暫時標記允許列印，並立即移除空白限制
+      window._allowPrintOnce = true;
+      document.body.classList.remove('prevent-print');
+
+      // 2. 使用 setTimeout(0) 讓重置動作在 window.print() 呼叫的「同一個 Tick」立刻接續執行
+      setTimeout(function () {
+        window._allowPrintOnce = false;
+        document.body.classList.add('prevent-print');
+      }, 0);
+    }
+  }, true); // 使用 Capture 階段，確保優先於按鈕自身的 onclick 觸發
+</script>
 
 
 </body>
