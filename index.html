@@ -1616,7 +1616,7 @@ body { padding-right: var(--tools-pad, 0px); }
       <tr>
         <td id="F26a" style="width:2cm;">格局圖</td>
         <td id="F26b" style="width:18cm; position: relative;">
-		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20260918版本</span>
+		<span style="position: absolute; bottom: 2px; right: 5px; font-size: 10px; color: #333;">20261120版本</span>
 		</td>
       </tr>
     </table>
@@ -1634,8 +1634,10 @@ body { padding-right: var(--tools-pad, 0px); }
       <button type="button" onclick="switchToLand()">土地版</button>
       <button type="button" onclick="switchToBuilding()">建物版</button>
     </div>
-	<button onclick="window.open('https://syy1224ini.github.io/twhgxdtdzldlb/', '_blank')">租賃點我</button>
+	<button type="button" onclick="window.open('https://syy1224ini.github.io/twhgxdtdzldlb/', '_blank')">租賃點我</button>
+	<button type="button" onclick="window.open('https://syy1224ini.github.io/twhgxdtdcfdlb/', '_blank')">廠房附表</button>
     <button type="button" onclick="clearAllInputs()"><b>清除全部</b></button><br>
+	<!--<button type="button" onclick="copyTemplateResult()"><b>複製點我</b></button>-->
     <button type="button" onclick="window.print()"><b>列印</b></button>
   </div>
 </div>
@@ -2252,6 +2254,289 @@ function switchToBuilding() {
       }, 0);
     }
   }, true); // 使用 Capture 階段，確保優先於按鈕自身的 onclick 觸發
+  
+  
+  function copyTemplateResult() {
+  // 1. 案名 (F03f)
+  const caseName = document.querySelector('#F03f input')?.value || '';
+
+  // 2. 地址 / 地號 (F07b 組合：有填內容才帶入該欄位與其後的選項/單位，沒填就跳過)
+  let address = '';
+  const f07bContainer = document.querySelector('#F07b');
+  if (f07bContainer) {
+    const f07Inputs = f07bContainer.querySelectorAll('input.ipt.tl');
+    const cityType = document.querySelector('#F07b_citytype')?.value || '';
+    const distType = document.querySelector('#F07b_districttype')?.value || '';
+    const roadType = document.querySelector('#F07b_roadtype')?.value || '';
+
+    // 判斷是否為土地版
+    if (f07bContainer.textContent.includes('地號')) {
+      const v0 = f07Inputs[0]?.value.trim() || '';
+      const v1 = f07Inputs[1]?.value.trim() || '';
+      const v2 = f07Inputs[2]?.value.trim() || '';
+      const v3 = f07Inputs[3]?.value.trim() || '';
+      const v4 = f07Inputs[4]?.value.trim() || '';
+
+      address = [
+        v0 ? `${v0}${cityType}` : '',
+        v1 ? `${v1}${distType}` : '',
+        v2 ? `${v2}段` : '',
+        v3 ? `${v3}小段` : '',
+        v4 ? `${v4}地號` : ''
+      ].join('');
+    } else {
+      // 建物版地址格式（同樣維持有填才加單位/選項，沒填就跳過）
+      const v0 = f07Inputs[0]?.value.trim() || '';
+      const v1 = f07Inputs[1]?.value.trim() || '';
+      const v2 = f07Inputs[2]?.value.trim() || '';
+      const v3 = f07Inputs[3]?.value.trim() || '';
+      const v4 = f07Inputs[4]?.value.trim() || '';
+      const v5 = f07Inputs[5]?.value.trim() || '';
+      const v6 = f07Inputs[6]?.value.trim() || '';
+      const v7 = f07Inputs[7]?.value.trim() || '';
+      const v8 = f07Inputs[8]?.value.trim() || '';
+	  const v9 = f07Inputs[9]?.value.trim() || '';
+
+      address = [
+        v0 ? `${v0}${cityType}` : '',
+        v1 ? `${v1}${distType}` : '',
+        v2 ? `${v2}${roadType}` : '',
+        v3 ? `${v3}段` : '',
+        v4 ? `${v4}巷` : '',
+        v5 ? `${v5}弄` : '',
+        v6 ? `${v6}號` : '',
+        v7 ? `${v7}樓` : '',
+		v8 ? `${v8}` : '',
+        v9 ? `之${v9}` : ''
+      ].join('');
+    }
+  }
+
+  // 3. 其他基本欄位
+  const community = document.querySelector('#F13b input')?.value || '';     // 社區 F13b
+  const totalPrice = document.querySelector('#F14f input')?.value || '';    // 總價 F14f
+  const bottomPrice = document.querySelector('#F15f input')?.value || '';   // 底價 F15f
+  const totalPing = document.querySelector('#F10j input')?.value || '';     // 權狀 F10j
+  const mainPing = document.querySelector('#F10b input')?.value || '';      // 主建物 F10b
+  const subPing = document.querySelector('#F10d input')?.value || '';       // 附屬建物 F10d
+  const pubPing = document.querySelector('#F10f input')?.value || '';       // 公設 F10f
+  const landPing = document.querySelector('#F10h input')?.value || '';      // 土地 F10h
+
+  // 4. 增建 (F12b 裡面的第二格坪數)
+  const f12bInputs = document.querySelectorAll('#F12b input.ipt.tl');
+  const addBuildingPing = f12bInputs[1]?.value || ''; // 第二個 input 為增建面積
+
+  // 5. 車位相關 (F14d 坪數、F14b 編號、F15b 型式、F14d 公設/獨立、F15d 售價)
+  const f14dInputs = document.querySelectorAll('#F14d input.ipt.tl');
+  const parkingPing = f14dInputs[0]?.value || ''; // F14d 的 input 內容
+  const parkingNo = document.querySelector('#F14b input.ipt.tl')?.value || ''; // F14b 編號
+
+  // 車位型式 (F15b 勾選的文字)
+  let parkingType = '';
+  const f15bCheckboxes = document.querySelectorAll('#F15b input[type="checkbox"]');
+  f15bCheckboxes.forEach(cb => {
+    if (cb.checked) {
+      // 取得 checkbox 後方的文字
+      let labelText = '';
+      if (cb.nextSibling && cb.nextSibling.nodeType === 3) {
+        labelText = cb.nextSibling.nodeValue.trim();
+      }
+      if (labelText) parkingType += (parkingType ? '、' : '') + labelText;
+    }
+  });
+
+  // 公設/獨立車位 (F14d 勾選哪一個就留下哪個)
+  let parkingCategory = '';
+  const f14dCheckboxes = document.querySelectorAll('#F14d input[type="checkbox"]');
+  if (f14dCheckboxes[0]?.checked) parkingCategory = '公設';
+  if (f14dCheckboxes[1]?.checked) parkingCategory = '獨立';
+
+  const parkingPrice = document.querySelector('#F15d input.ipt.tl')?.value || ''; // 車位價 F15d
+
+  // 6. 格局 (F09b 格式：房/廳/衛/陽台)
+  const f09bInputs = document.querySelectorAll('#F09b input.ipt.tl');
+  const room1 = f09bInputs[0]?.value.trim() || '';
+  const room2 = f09bInputs[1]?.value.trim() || '';
+  const hall = f09bInputs[2]?.value.trim() || '';
+  const bath = f09bInputs[3]?.value.trim() || '';
+  const balcony = f09bInputs[4]?.value.trim() || '';
+
+  // 判斷房的組合
+  let roomStr = '';
+  if (room1 && room2) {
+    roomStr = `${room1}+${room2}房`;
+  } else if (room1) {
+    roomStr = `${room1}房`;
+  } else if (room2) {
+    roomStr = `${room2}房`;
+  }
+
+  // 組合整體格局（有填才顯示，沒填就跳過）
+  let layoutParts = [];
+  if (roomStr) layoutParts.push(roomStr);
+  if (hall) layoutParts.push(`${hall}廳`);
+  if (bath) layoutParts.push(`${bath}衛`);
+  if (balcony) layoutParts.push(`${balcony}陽台`);
+  const layout = layoutParts.join('/');
+
+
+  // 7. 增建格局 (F12b 後五格)
+  const addRooms = f12bInputs[2]?.value.trim() || '';
+  const addRooms2 = f12bInputs[3]?.value.trim() || '';
+  const addHall = f12bInputs[4]?.value.trim() || '';
+  const addBath = f12bInputs[5]?.value.trim() || '';
+  const addBalcony = f12bInputs[6]?.value.trim() || '';
+
+  // 判斷增建房的組合
+  let addRoomStr = '';
+  if (addRooms && addRooms2) {
+    addRoomStr = `${addRooms}+${addRooms2}房`;
+  } else if (addRooms) {
+    addRoomStr = `${addRooms}房`;
+  } else if (addRooms2) {
+    addRoomStr = `${addRooms2}房`;
+  }
+
+  // 組合增建格局（有填才顯示，沒填就跳過）
+  let addLayoutParts = [];
+  if (addRoomStr) addLayoutParts.push(addRoomStr);
+  if (addHall) addLayoutParts.push(`${addHall}廳`);
+  if (addBath) addLayoutParts.push(`${addBath}衛`);
+  if (addBalcony) addLayoutParts.push(`${addBalcony}陽台`);
+  const addLayout = addLayoutParts.join('/');
+
+  // 8. 樓層 (銷售樓層 F11b / 總樓高 F11d 第一格)
+  const salesFloor = document.querySelector('#F11b input.ipt.tl')?.value || '';
+  const f11dInputs = document.querySelectorAll('#F11d input.ipt.tl');
+  const totalFloor = f11dInputs[0]?.value || '';
+  const floorInfo = `${salesFloor}/${totalFloor}`;
+
+  // 9. 建築完成日 (F13d) 與 屋齡 (F13f)
+  const f13dInputs = document.querySelectorAll('#F13d input.ipt.tl');
+  const buildYear = f13dInputs[0]?.value || '';
+  const buildMonth = f13dInputs[1]?.value || '';
+  const buildDay = f13dInputs[2]?.value || '';
+  const buildDateStr = `${buildYear}年${buildMonth}月${buildDay}日`;
+  const houseAge = document.querySelector('#F13f input.ipt.tl')?.value || '';
+
+  // 10. 座向 (F13h)
+  const f13hInputs = document.querySelectorAll('#F13h input.ipt.tl');
+  const face1 = f13hInputs[0]?.value || '';
+  const face2 = f13hInputs[1]?.value || '';
+  const orientation = `坐${face1}朝${face2}`;
+
+  // 11. 瓦斯 (F17e 勾選哪一個就留哪個)
+  let gasInfo = '';
+  const f17eCheckboxes = document.querySelectorAll('#F17e input[type="checkbox"]');
+  const gasOptions = ['天然瓦斯', '桶裝瓦斯', '電'];
+  f17eCheckboxes.forEach((cb, idx) => {
+    if (cb.checked && gasOptions[idx]) {
+      gasInfo = gasOptions[idx];
+    }
+  });
+
+  // 12. 電梯 (一層 F17c 梯 F16c 戶)
+  const elevatorCount = document.querySelector('#F17c input.ipt.tl')?.value || '';
+  const householdCount = document.querySelector('#F16c input.ipt.tl')?.value || '';
+  const elevatorInfo = `一層${elevatorCount}梯${householdCount}戶`;
+
+  // 13. 周邊機能 (F23f / F24b / F24f / F24d)
+  const school = document.querySelector('#F23f input.ipt.tl')?.value || '';
+  const park = document.querySelector('#F24b input.ipt.tl')?.value || '';
+  const department = document.querySelector('#F24f input.ipt.tl')?.value || '';
+  const f24dInputs = document.querySelectorAll('#F24d input.ipt.tl');
+  const mrtLine = f24dInputs[0]?.value || '';
+  const mrtStation = f24dInputs[1]?.value || '';
+  const mrtInfo = (mrtLine || mrtStation) ? `${mrtLine}線${mrtStation}站` : '';
+  const functionArea = [school, park, department, mrtInfo].filter(Boolean).join(' / ');
+
+  // 14. 其他特色、帶看方式、專員、備註
+  const feature = document.querySelector('#F25b input.ipt.tl')?.value || '';
+  
+  // 帶看方式 (F09f 勾選哪一個就留哪個)
+  let showWay = '';
+  const f09fCheckboxes = document.querySelectorAll('#F09f input[type="checkbox"]');
+  const f09fLabels = ['KEY', '專員', '管理員'];
+  f09fCheckboxes.forEach((cb, idx) => {
+    if (cb.checked && f09fLabels[idx]) {
+      showWay += (showWay ? '、' : '') + f09fLabels[idx];
+    }
+  });
+  // 如果是額外填寫的自訂帶看方式
+  const customShowWayInput = document.querySelector('#F09f input[type="text"]:not(.ipt)'); 
+  // 或者是最後一個 input
+  const f09fAllInputs = document.querySelectorAll('#F09f input.ipt.tl');
+  if (f09fAllInputs.length > 0) {
+    const customVal = f09fAllInputs[0]?.value.trim();
+    if (customVal) showWay += (showWay ? '、' : '') + customVal;
+  }
+
+  const agent = document.querySelector('#F03d input')?.value || '';
+  const remark = document.querySelector('#F19d input.ipt.tl')?.value || '';
+
+  // 2. 組裝成你指定的完整模版格式
+  const template = `
+【新案介紹】
+【案名】：${caseName}
+【地址】：${address}
+【社區】：${community}
+【總價】：${totalPrice}
+【底價】：${bottomPrice}
+【權狀】：${totalPing}坪
+【主建物】：${mainPing}坪
+【附屬建物】：${subPing}坪
+【公設】：${pubPing}坪
+【土地】：${landPing}坪
+【增建】：${addBuildingPing} 坪
+【車位】：${parkingPing} 坪
+【車位編號】：${parkingNo}
+【車位型式】：${parkingType}
+${parkingCategory}車位：車位價${parkingPrice}萬
+【格局】：${layout}
+【增建格局】：${addLayout}
+【樓層】：${floorInfo}
+【建築完成日】：${buildDateStr}
+【屋齡】：約${houseAge}年
+【建物主要用途】：
+【座向】：${orientation}
+【瓦斯】：${gasInfo}
+【電梯】：${elevatorInfo}
+【周邊機能】：${functionArea}
+【物件特色】：${feature}
+【帶看方式】：${showWay}
+【專員】：${agent}
+【備註】：${remark}
+  `.trim();
+
+  // 3. 將組好的內容複製到剪貼簿並呼叫自訂漂亮彈窗
+  navigator.clipboard.writeText(template).then(() => {
+    showCopySuccessModal("已成功複製填寫結果！<br>先再次檢查內容是否有誤並補上【建物主要用途】(土地請忽略)後<br>再貼上至 LINE 群組中");
+  }).catch(err => {
+    console.error('複製失敗: ', err);
+    showCopySuccessModal("❌ 複製失敗，請檢查瀏覽器權限。");
+  });
+}
+
+// 搭配的彈窗控制函式（如果還沒加，也一併放在旁邊）
+function showCopySuccessModal(message) {
+  const modal = document.getElementById('valModal');
+  const ul = document.getElementById('valErrors');
+  const title = modal.querySelector('h3');
+  const btn = modal.querySelector('.actions button');
+
+  title.innerHTML = "複製通知說明";
+  
+  // 加上 text-align: center; 與 padding: 0; 讓文字左右置中且不偏左
+  ul.innerHTML = `<li style="list-style:none; font-size:16px; margin: 15px 0; text-align: center; padding: 0;">${message}</li>`;
+  
+  // 讓整個 ul 本身也強制置中
+  ul.style.textAlign = "center";
+  ul.style.paddingLeft = "0";
+
+  btn.textContent = "確定";
+  modal.style.display = 'flex';
+}
+
 </script>
 
 
